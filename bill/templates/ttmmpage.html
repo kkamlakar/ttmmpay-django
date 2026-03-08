@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TTMMPay Full Summary</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .container { display: flex; gap: 20px; }
+    .panel { border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
+    .left { width: 35%; }
+    .right { width: 65%; }
+    input, button { padding: 5px; margin: 3px 0; width: 95%; }
+    ul { margin-top: 10px; padding-left: 20px; }
+    table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 5px; text-align: center; }
+    th { background: #f0f0f0; }
+    .checkboxes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+    .checkboxes label { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+    h3 { margin-bottom: 5px; margin-top: 0; }
+  </style>
+</head>
+<body>
+
+<h1>TTMMPay</h1>
+<div class="container">
+
+  <!-- LEFT PANEL -->
+  <div class="panel left">
+    <h3>Step 1: Add Persons</h3>
+    <input type="text" id="personName" placeholder="Person Name">
+    <button onclick="addPerson()">Add Person</button>
+    <ul id="personList"></ul>
+
+    <hr>
+
+    <h3>Step 2: Add Items</h3>
+    <input type="text" id="itemName" placeholder="Item Name">
+    <input type="number" id="itemPrice" placeholder="Price">
+    <button onclick="addItem()">Add Item</button>
+    <ul id="itemList"></ul>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel right">
+    <h3>Step 3: Assign Consumption & Summary</h3>
+    <div id="itemConsumption"></div>
+
+    <hr>
+
+    <h3>Bill Summary</h3>
+    <table id="summaryTable">
+      <tr>
+        <th>Item</th>
+        <th>Consumed By</th>
+        <th>Total Price</th>
+        <th>Price per Person</th>
+      </tr>
+    </table>
+
+    <h3>Final Amount Per Person</h3>
+    <table id="finalTable">
+      <tr><th>Person</th><th>Total Amount</th></tr>
+    </table>
+  </div>
+
+</div>
+
+<script>
+let persons = [];
+let items = [];
+
+// Add person
+function addPerson() {
+    const name = document.getElementById('personName').value.trim();
+    if(!name) return alert('Enter person name');
+    if(persons.includes(name)) return alert('Person already added');
+    persons.push(name);
+    document.getElementById('personName').value='';
+    updatePersonList();
+    updateItemConsumption();
+}
+
+// Update person list
+function updatePersonList() {
+    const ul = document.getElementById('personList');
+    ul.innerHTML = '';
+    persons.forEach(p => {
+        const li = document.createElement('li');
+        li.innerText = p;
+        ul.appendChild(li);
+    });
+}
+
+// Add item
+function addItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const price = parseFloat(document.getElementById('itemPrice').value);
+    if(!name || isNaN(price)) return alert('Enter item name and price');
+    items.push({name, price, consumed: []});
+    document.getElementById('itemName').value='';
+    document.getElementById('itemPrice').value='';
+    updateItemList();
+    updateItemConsumption();
+}
+
+// Update item list
+function updateItemList() {
+    const ul = document.getElementById('itemList');
+    ul.innerHTML = '';
+    items.forEach(item => {
+        const li = document.createElement('li');
+        li.innerText = `${item.name} - ₹${item.price.toFixed(2)}`;
+        ul.appendChild(li);
+    });
+}
+
+// Update consumption checkboxes
+function updateItemConsumption() {
+    const div = document.getElementById('itemConsumption');
+    div.innerHTML = '';
+    items.forEach((item, i) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.style.marginBottom = '10px';
+        const title = document.createElement('strong');
+        title.innerText = `${item.name} (₹${item.price.toFixed(2)})`;
+        itemDiv.appendChild(title);
+
+        const checkboxes = document.createElement('div');
+        checkboxes.className = 'checkboxes';
+        persons.forEach(p => {
+            const label = document.createElement('label');
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = item.consumed.includes(p);
+            cb.onchange = function() {
+                if(this.checked) item.consumed.push(p);
+                else item.consumed = item.consumed.filter(x => x !== p);
+                renderSummary(); // update table dynamically
+            };
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(p));
+            checkboxes.appendChild(label);
+        });
+        itemDiv.appendChild(checkboxes);
+        div.appendChild(itemDiv);
+    });
+
+    renderSummary(); // refresh table after adding/updating items
+}
+
+// Render summary table
+function renderSummary() {
+    const summaryTable = document.getElementById('summaryTable');
+    summaryTable.innerHTML = `<tr>
+        <th>Item</th><th>Consumed By</th><th>Total Price</th><th>Price per Person</th>
+    </tr>`;
+
+    const totals = {};
+    persons.forEach(p => totals[p] = 0);
+
+    items.forEach(item => {
+        const row = summaryTable.insertRow();
+        row.insertCell(0).innerText = item.name;
+        row.insertCell(1).innerText = item.consumed.join(', ') || '-';
+        row.insertCell(2).innerText = item.price.toFixed(2);
+        const share = item.consumed.length ? item.price / item.consumed.length : 0;
+        row.insertCell(3).innerText = share.toFixed(2);
+        item.consumed.forEach(p => totals[p] += share);
+    });
+
+    const finalTable = document.getElementById('finalTable');
+    finalTable.innerHTML = `<tr><th>Person</th><th>Total Amount</th></tr>`;
+    for(const p in totals){
+        const row = finalTable.insertRow();
+        row.insertCell(0).innerText = p;
+        row.insertCell(1).innerText = totals[p].toFixed(2);
+    }
+}
+</script>
+
+</body>
+</html>
