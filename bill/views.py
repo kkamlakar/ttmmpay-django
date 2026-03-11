@@ -1,6 +1,9 @@
 from django.shortcuts import render, redirect
 from datetime import datetime
 import pyodbc
+import json
+from django.http import JsonResponse
+
 
 
 # ---------------------------
@@ -191,36 +194,36 @@ def ttmmpage(request):
         # SAVE CONSUMPTION
         # -----------------
 
-        elif action == "save_consumption":
+#        elif action == "save_consumption":
 
-            cursor.execute("SELECT ItemName FROM BillItems")
-            items = cursor.fetchall()
+#            cursor.execute("SELECT ItemId FROM BillItems")
+#            items = cursor.fetchall()
 
-            for item in items:
+#            for item in items:
 
-                item_id = item[0]
+#                item_id = item[0]
 
-                selected_persons = request.POST.getlist(f"consume_{item_id}")
+#                selected_persons = request.POST.getlist(f"consume_{item_id}")
 
-                for person_id in selected_persons:
+#                for person_id in selected_persons:
 
-                    cursor.execute("""
-                    INSERT INTO ItemConsumption (ItemName, PersonId)
-                    VALUES (?, ?)
-                    """, (item_id, person_id))
+#                    cursor.execute("""
+#                    INSERT INTO ItemConsumption (ItemId, PersonId)
+#                    VALUES (?, ?)
+#                    """, (item_id, person_id))
 
-            conn.commit()
+#            conn.commit()
 
-            message = "Consumption saved"
+#            message = "Consumption saved"
 
     # -----------------
     # LOAD DATA FOR PAGE
     # -----------------
 
-    cursor.execute("SELECT ParticipantID, PersonName FROM BillParticipants")
+    cursor.execute("SELECT PersonId, PersonName FROM BillParticipants")
     persons = cursor.fetchall()
 
-    cursor.execute("SELECT ItemName, Price FROM BillItems")
+    cursor.execute("SELECT ItemId, ItemName, Price FROM BillItems")
     items = cursor.fetchall()
 
     return render(request, "ttmmpage.html", {
@@ -228,3 +231,82 @@ def ttmmpage(request):
         "persons": persons,
         "items": items
     })
+
+
+def save_bill(request):
+
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "POST required"})
+
+    try:
+
+        data = json.loads(request.body)
+
+        print("DATA RECEIVED:", data)
+
+        persons = data.get("persons", [])
+        items = data.get("items", [])
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        person_totals = {}
+
+        for p in persons:
+            person_totals[p] = 0
+
+        today = datetime.now().strftime("%d-%m-%Y")
+
+        # -------------------------
+        # INSERT ITEM SPLITS
+        # -------------------------
+
+        for item in items:
+
+            item_name = item["name"]
+            item_price = item["price"]
+            consumers = item["consumed"]
+
+            split_price = item_price / len(consumers)
+
+            for person in consumers:
+
+                person_totals[person] += split_price
+
+                cursor.execute("""
+                INSERT INTO BillSummary
+                (Date, PersonName, ItemName, ItemPrice, PerPersonSplitPrice, FinalPrice)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    today,
+                    person,
+                    item_name,
+                    item_price,
+                    split_price,
+                    0
+                ))
+
+        # -------------------------
+        # UPDATE FINAL PRICE
+        # -------------------------
+
+        for person, total in person_totals.items():
+
+            cursor.execute("""
+            UPDATE BillSummary
+            SET FinalPrice = ?
+            WHERE PersonName = ? AND Date = ?
+            """, (total, person, today))
+
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return JsonResponse({"status": "success"})
+
+    except Exception as e:
+
+        print("SAVE BILL ERROR:", e)
+
+        return JsonResponse({"status": "error", "message": str(e)})
