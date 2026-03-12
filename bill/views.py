@@ -250,6 +250,9 @@ def save_bill(request):
         conn = get_connection()
         cursor = conn.cursor()
 
+        cursor.execute("SELECT ISNULL(MAX(BillId),0) + 1 FROM billsummary")
+        bill_id = cursor.fetchone()[0]
+
         person_totals = {}
 
         for p in persons:
@@ -275,15 +278,16 @@ def save_bill(request):
 
                 cursor.execute("""
                 INSERT INTO BillSummary
-                (Date, PersonName, ItemName, ItemPrice, PerPersonSplitPrice, FinalPrice)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (Date, PersonName, ItemName, ItemPrice, PerPersonSplitPrice, FinalPrice, BillId)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
                     today,
                     person,
                     item_name,
                     item_price,
                     split_price,
-                    0
+                    0,
+                    bill_id
                 ))
 
         # -------------------------
@@ -310,3 +314,39 @@ def save_bill(request):
         print("SAVE BILL ERROR:", e)
 
         return JsonResponse({"status": "error", "message": str(e)})
+    
+
+    
+def summary_page(request, bill_id=None):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if bill_id is None:
+        cursor.execute("SELECT MAX(BillId) FROM billsummary")
+        bill_id = cursor.fetchone()[0]
+    
+    # Query 1 → item details
+    cursor.execute("""
+        SELECT *
+        FROM billsummary
+        WHERE BillId = ?
+        ORDER BY PersonName, ItemName           
+    """, (bill_id,))
+    rows = cursor.fetchall()
+
+
+    # Query 2 → total per person
+    cursor.execute("""
+        SELECT PersonName, MAX(FinalPrice)
+        FROM billsummary
+        WHERE BillId = ?
+        GROUP BY PersonName    
+    """, (bill_id,))
+    totals = cursor.fetchall()
+
+
+    cursor.close()
+    conn.close()
+
+    return render(request, "summary.html", {"rows": rows, "totals": totals, "bill_id": bill_id})

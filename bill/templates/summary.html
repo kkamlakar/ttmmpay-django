@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bill Summary</title>
+</head>
+
+<body>
+
+<h2>Latest Bill Summary</h2>
+
+<h2>Bill ID: {{ bill_id }}</h2>
+
+<a href="/summary/{{ bill_id|add:"-1" }}/">⬅ Previous</a>
+&nbsp;&nbsp;
+<a href="/summary/{{ bill_id|add:"1" }}/">Next ➡</a>
+
+<br><br>
+<h3>Total Payable</h3>
+
+<table border="1">
+
+<tr>
+<th>Person</th>
+<th>Total</th>
+</tr>
+
+{% for t in totals %}
+
+<tr>
+<td>{{ t.0 }}</td>
+<td>{{ t.1 }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<br>
+
+<table border="1">
+
+<tr>
+    <th>Person</th>
+    <th>Item</th>
+    <th>Item Price</th>
+    <th>Split Price</th>
+    <th>Final Price</th>
+</tr>
+
+{% for row in rows %}
+
+<tr>
+    <td>{{ row.2 }}</td>
+    <td>{{ row.3 }}</td>
+    <td>{{ row.4 }}</td>
+    <td>{{ row.5 }}</td>
+    <td>{{ row.6 }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</body>
+</html>

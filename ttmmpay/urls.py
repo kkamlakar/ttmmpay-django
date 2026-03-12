@@ -27,4 +27,6 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('ttmmpage/', views.ttmmpage, name='ttmmpage'),
     path("save-bill/", views.save_bill, name="save_bill"),
-]
+    path('summary/', views.summary_page, name='summary'),
+    path('summary/<int:bill_id>/', views.summary_page, name='summary_bill'),
+    ]
