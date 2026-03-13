@@ -4,45 +4,80 @@
 <title>TTMMPay Full Summary</title>
 
 <style>
-body { font-family: Arial; margin: 20px; }
-.container { display: flex; gap: 20px; }
-.panel { border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
-.left { width: 35%; }
-.right { width: 65%; }
 
-input, button {
-    padding: 5px;
-    margin: 3px 0;
-    width: 95%;
+body{
+    font-family: Arial, Helvetica, sans-serif;
+    background-color:#f4f6f9;
+    margin:0;
+    padding:30px;
 }
 
-ul { margin-top: 10px; padding-left: 20px; }
-
-table, th, td {
-    border: 1px solid #ccc;
-    border-collapse: collapse;
-    padding: 5px;
-    text-align: center;
+.container{
+    width:900px;
+    margin:auto;
+    background:white;
+    padding:25px;
+    border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
 }
 
-th { background: #f0f0f0; }
-
-.checkboxes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 5px;
+h1,h2,h3{
+    margin-top:0;
 }
 
-.checkboxes label {
-    display: flex;
-    align-items: center;
-    gap: 3px;
+button{
+    padding:8px 16px;
+    border:none;
+    background:#2c7be5;
+    color:white;
+    border-radius:4px;
+    cursor:pointer;
 }
 
-h3 { margin-bottom: 5px; margin-top: 0; }
+button:hover{
+    background:#1a5ed6;
+}
+
+a{
+    text-decoration:none;
+    font-weight:bold;
+    color:#2c7be5;
+}
+
+a:hover{
+    text-decoration:underline;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+
+table th{
+    background:#2c7be5;
+    color:white;
+    padding:8px;
+}
+
+table td{
+    padding:8px;
+    border-bottom:1px solid #ddd;
+}
+
+table tr:hover{
+    background:#f2f2f2;
+}
+
+.section{
+    margin-top:25px;
+}
+
+.nav{
+    margin-bottom:20px;
+}
+
 </style>
-
 </head>
 <body>
 
@@ -57,6 +92,7 @@ h3 { margin-bottom: 5px; margin-top: 0; }
 
 <input type="text" id="personName" placeholder="Person Name">
 <button onclick="addPerson()">Add Person</button>
+<p><b>Persons Added:</b> <span id="personCount">0</span></p>
 
 <ul id="personList"></ul>
 
@@ -68,6 +104,7 @@ h3 { margin-bottom: 5px; margin-top: 0; }
 <input type="number" id="itemPrice" placeholder="Price">
 
 <button onclick="addItem()">Add Item</button>
+<p><b>Items Added:</b> <span id="itemCount">0</span></p>
 
 <ul id="itemList"></ul>
 
@@ -149,6 +186,8 @@ ul.appendChild(li)
 
 })
 
+document.getElementById("personCount").innerText = persons.length
+
 }
 
 
@@ -184,6 +223,8 @@ li.innerText = `${item.name} - ₹${item.price.toFixed(2)}`
 ul.appendChild(li)
 
 })
+
+document.getElementById("itemCount").innerText = items.length
 
 }
 

@@ -1,23 +1,87 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Bill Summary</title>
+<title>Bill Summary</title>
+
+<style>
+
+body{
+    font-family: Arial;
+    background:#f4f6f9;
+    padding:30px;
+}
+
+.container{
+    width:900px;
+    margin:auto;
+    background:white;
+    padding:25px;
+    border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background:#2c7be5;
+    color:white;
+    padding:8px;
+}
+
+td{
+    padding:8px;
+    border-bottom:1px solid #ddd;
+}
+
+tr:hover{
+    background:#f2f2f2;
+}
+
+.nav{
+    margin-bottom:20px;
+}
+
+a{
+    text-decoration:none;
+    font-weight:bold;
+    color:#2c7be5;
+}
+
+</style>
+
 </head>
 
 <body>
 
-<h2>Latest Bill Summary</h2>
+<div class="container">
 
-<h2>Bill ID: {{ bill_id }}</h2>
+<h1>TTMMPay Bill Summary</h1>
 
+<div class="nav">
+
+{% if bill_id > min_id %}
 <a href="/summary/{{ bill_id|add:"-1" }}/">⬅ Previous</a>
-&nbsp;&nbsp;
-<a href="/summary/{{ bill_id|add:"1" }}/">Next ➡</a>
+{% endif %}
 
-<br><br>
+&nbsp;&nbsp;&nbsp;
+
+<strong>Bill ID: {{ bill_id }}</strong>
+
+&nbsp;&nbsp;&nbsp;
+
+{% if bill_id < max_id %}
+<a href="/summary/{{ bill_id|add:"1" }}/">Next ➡</a>
+{% endif %}
+
+</div>
+
 <h3>Total Payable</h3>
 
-<table border="1">
+<table>
 
 <tr>
 <th>Person</th>
@@ -25,41 +89,41 @@
 </tr>
 
 {% for t in totals %}
-
 <tr>
 <td>{{ t.0 }}</td>
 <td>{{ t.1 }}</td>
 </tr>
-
 {% endfor %}
 
 </table>
 
-<br>
+<br><br>
 
-<table border="1">
+<h3>Item Details</h3>
+
+<table>
 
 <tr>
-    <th>Person</th>
-    <th>Item</th>
-    <th>Item Price</th>
-    <th>Split Price</th>
-    <th>Final Price</th>
+<th>Person</th>
+<th>Item</th>
+<th>Item Price</th>
+<th>Split Price</th>
+<th>Final Price</th>
 </tr>
 
 {% for row in rows %}
-
 <tr>
-    <td>{{ row.2 }}</td>
-    <td>{{ row.3 }}</td>
-    <td>{{ row.4 }}</td>
-    <td>{{ row.5 }}</td>
-    <td>{{ row.6 }}</td>
+<td>{{ row.2 }}</td>
+<td>{{ row.3 }}</td>
+<td>{{ row.4 }}</td>
+<td>{{ row.5 }}</td>
+<td>{{ row.6 }}</td>
 </tr>
-
 {% endfor %}
 
 </table>
+
+</div>
 
 </body>
 </html>

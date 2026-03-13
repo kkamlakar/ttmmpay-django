@@ -148,6 +148,8 @@ def ttmmpage(request):
 
             cursor.execute("SELECT SCOPE_IDENTITY()")
             bill_id = cursor.fetchone()[0]
+            
+            request.session['bill_id'] = int(bill_id)
 
             message = f"Bill Created ID: {bill_id}"
 
@@ -157,18 +159,24 @@ def ttmmpage(request):
 
         elif action == "add_person":
 
-            person = request.POST.get("person")
-            created = datetime.now()
+            bill_id = request.session.get("bill_id")
 
-            cursor.execute("""
-            INSERT INTO BillParticipants
-            (PersonName, CreatedDateTime)
-            VALUES (?, ?)
-            """, (person, created))
+            if not bill_id:
+                message = "Please create bill first"
 
-            conn.commit()
+            else:
+                person = request.POST.get("person")
+                created = datetime.now()
 
-            message = "Person added"
+                cursor.execute("""
+                INSERT INTO BillParticipants
+                (BillId, PersonName, CreatedDateTime)
+                VALUES (?, ?, ?)
+                """, (bill_id, person, created))
+
+                conn.commit()
+
+                message = "Person added"
 
         # -----------------
         # ADD ITEM
@@ -176,19 +184,25 @@ def ttmmpage(request):
 
         elif action == "add_item":
 
-            item = request.POST.get("itemname")
-            price = request.POST.get("price")
-            created = datetime.now()
+            bill_id = request.session.get("bill_id")
 
-            cursor.execute("""
-            INSERT INTO BillItems
-            (ItemName, Price, CreatedDateTime)
-            VALUES (?, ?, ?)
-            """, (item, price, created))
+            if not bill_id:
+                message = "Please create bill first"
 
-            conn.commit()
+            else:
+                item = request.POST.get("itemname")
+                price = request.POST.get("price")
+                created = datetime.now()
 
-            message = "Item added"
+                cursor.execute("""
+                INSERT INTO BillItems
+                (BillId, ItemName, Price, CreatedDateTime)
+                VALUES (?, ?, ?, ?)
+                """, (bill_id, item, price, created))
+
+                conn.commit()
+
+                message = "Item added"
 
         # -----------------
         # SAVE CONSUMPTION
@@ -220,16 +234,31 @@ def ttmmpage(request):
     # LOAD DATA FOR PAGE
     # -----------------
 
-    cursor.execute("SELECT PersonId, PersonName FROM BillParticipants")
+    bill_id = request.session.get("bill_id", 0)
+
+    cursor.execute("""
+    SELECT PersonId, PersonName
+    FROM BillParticipants
+    WHERE BillId = ?
+    """, (bill_id,))
     persons = cursor.fetchall()
 
-    cursor.execute("SELECT ItemId, ItemName, Price FROM BillItems")
+    cursor.execute("""
+    SELECT ItemId, ItemName, Price
+    FROM BillItems
+    WHERE BillId = ?
+    """, (bill_id,))
     items = cursor.fetchall()
+
+    person_count = len(persons)
+    item_count = len(items)
 
     return render(request, "ttmmpage.html", {
         "message": message,
         "persons": persons,
-        "items": items
+        "items": items,
+        "person_count": person_count,
+        "item_count": item_count
     })
 
 
@@ -258,7 +287,7 @@ def save_bill(request):
         for p in persons:
             person_totals[p] = 0
 
-        today = datetime.now().strftime("%d-%m-%Y")
+        today = datetime.now().strftime("%Y-%m-%d")
 
         # -------------------------
         # INSERT ITEM SPLITS
@@ -322,10 +351,24 @@ def summary_page(request, bill_id=None):
     conn = get_connection()
     cursor = conn.cursor()
 
+    # get max bill id
+    cursor.execute("SELECT MAX(BillId) FROM billsummary")
+    max_id = cursor.fetchone()[0]
+
+    # get min bill id
+    cursor.execute("SELECT MIN(BillId) FROM billsummary")
+    min_id = cursor.fetchone()[0]
+
     if bill_id is None:
-        cursor.execute("SELECT MAX(BillId) FROM billsummary")
-        bill_id = cursor.fetchone()[0]
-    
+        bill_id = max_id
+
+    # prevent going beyond limits
+    if bill_id > max_id:
+        bill_id = max_id
+
+    if bill_id < min_id:
+        bill_id = min_id
+
     # Query 1 → item details
     cursor.execute("""
         SELECT *
@@ -334,7 +377,6 @@ def summary_page(request, bill_id=None):
         ORDER BY PersonName, ItemName           
     """, (bill_id,))
     rows = cursor.fetchall()
-
 
     # Query 2 → total per person
     cursor.execute("""
@@ -345,8 +387,13 @@ def summary_page(request, bill_id=None):
     """, (bill_id,))
     totals = cursor.fetchall()
 
-
     cursor.close()
     conn.close()
 
-    return render(request, "summary.html", {"rows": rows, "totals": totals, "bill_id": bill_id})
+    return render(request, "summary.html", {
+        "rows": rows,
+        "totals": totals,
+        "bill_id": bill_id,
+        "max_id": max_id,
+        "min_id": min_id
+    })
