@@ -157,7 +157,8 @@ let items = []
 // Add person
 function addPerson(){
 
-const name = document.getElementById('personName').value.trim()
+let name = document.getElementById('personName').value.trim()
+name = capitalizeWords(name)
 
 if(!name) return alert("Enter person name")
 if(persons.includes(name)) return alert("Person already added")
@@ -165,6 +166,7 @@ if(persons.includes(name)) return alert("Person already added")
 persons.push(name)
 
 document.getElementById('personName').value=""
+document.getElementById('personName').focus()
 
 updatePersonList()
 updateItemConsumption()
@@ -181,7 +183,13 @@ ul.innerHTML=""
 persons.forEach(p => {
 
 const li = document.createElement("li")
-li.innerText = p
+
+li.innerHTML = `
+${p} 
+<button onclick="editPerson('${p}')">Edit</button>
+<button onclick="deletePerson('${p}')">Delete</button>
+`
+
 ul.appendChild(li)
 
 })
@@ -190,11 +198,47 @@ document.getElementById("personCount").innerText = persons.length
 
 }
 
+function editPerson(oldName){
+
+let newName = prompt("Edit person name:", oldName)
+
+if(!newName) return
+
+newName = capitalizeWords(newName.trim())
+
+const index = persons.indexOf(oldName)
+
+persons[index] = newName
+
+items.forEach(item=>{
+item.consumed = item.consumed.map(p => p === oldName ? newName : p)
+})
+
+updatePersonList()
+updateItemConsumption()
+
+}
+
+function deletePerson(name){
+
+persons = persons.filter(p => p !== name)
+
+items.forEach(item=>{
+item.consumed = item.consumed.filter(p=>p!==name)
+})
+
+updatePersonList()
+updateItemConsumption()
+
+}
+
 
 // Add item
 function addItem(){
 
-const name = document.getElementById("itemName").value.trim()
+let name = document.getElementById("itemName").value.trim()
+name = capitalizeWords(name)
+
 const price = parseFloat(document.getElementById("itemPrice").value)
 
 if(!name || isNaN(price)) return alert("Enter item name and price")
@@ -203,6 +247,7 @@ items.push({name,price,consumed:[]})
 
 document.getElementById("itemName").value=""
 document.getElementById("itemPrice").value=""
+document.getElementById("itemName").focus()
 
 updateItemList()
 updateItemConsumption()
@@ -219,7 +264,11 @@ ul.innerHTML=""
 items.forEach(item => {
 
 const li = document.createElement("li")
-li.innerText = `${item.name} - ₹${item.price.toFixed(2)}`
+li.innerHTML = `
+${item.name} - ₹${item.price.toFixed(2)}
+<button onclick="editItem(${items.indexOf(item)})">Edit</button>
+<button onclick="deleteItem(${items.indexOf(item)})">Delete</button>
+`
 ul.appendChild(li)
 
 })
@@ -228,6 +277,37 @@ document.getElementById("itemCount").innerText = items.length
 
 }
 
+
+function editItem(index){
+
+let item = items[index]
+
+let newName = prompt("Edit item name:", item.name)
+if(!newName) return
+
+newName = capitalizeWords(newName.trim())
+
+let newPrice = prompt("Edit price:", item.price)
+
+if(!newPrice || isNaN(newPrice)) return alert("Invalid price")
+
+items[index].name = newName
+items[index].price = parseFloat(newPrice)
+
+updateItemList()
+updateItemConsumption()
+
+}
+
+
+function deleteItem(index){
+
+items.splice(index,1)
+
+updateItemList()
+updateItemConsumption()
+
+}
 
 // Update consumption checkboxes
 function updateItemConsumption(){
@@ -435,6 +515,13 @@ break
 
 return cookieValue
 
+}
+
+
+function capitalizeWords(text){
+    return text.replace(/\b\w/g,function(letter){
+        return letter.toUpperCase();
+    });
 }
 
 </script>
