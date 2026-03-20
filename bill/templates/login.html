@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 
+{% load static %}
+
 <head>
 <title>TTMMPay Login</title>
 
@@ -8,21 +10,58 @@
 
 body{
     font-family: Arial, Helvetica, sans-serif;
-    background:#5E0006;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
     margin:0;
 }
 
+.container{
+    display:flex;
+    height:100vh;
+}
+
+/* LEFT SIDE */
+.left-panel{
+    flex:1;
+}
+
+.left-panel img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+/* RIGHT SIDE */
+.right-panel{
+    flex:1;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background: url("{% static 'Dutch_Pay.png' %}") no-repeat center;
+    background-size: cover;
+    position: relative;
+}
+
+/* OVERLAY (BLUR + DARK EFFECT) */
+.right-panel::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+
+    background: rgba(0,0,0,0.5);  /* control visibility */
+    backdrop-filter: blur(6px);   /* blur effect */
+}
+
 .login-box{
-    background:#F57799;
+    background:#9BC264;
     padding:35px;
     width:320px;
-    border-radius:8px;
-    box-shadow:0 4px 15px rgba(0,0,0,0.15);
+    border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.25);
     text-align:center;
+    backdrop-filter: blur(6px);
 }
 
 h2{
@@ -69,7 +108,7 @@ button:hover{
 }
 
 .signup a{
-    color:#4B2E2B;
+    color:#1A05A2;
     text-decoration:none;
     font-weight:bold;
 }
@@ -84,31 +123,44 @@ button:hover{
 
 <body>
 
-<div class="login-box">
+<div class="container">
 
-<h2>TTMMPay Login</h2>
+    <!-- LEFT PANEL (Image) -->
+    <div class="left-panel">
+        <img src="{% static 'Dutch_Pay.png' %}" alt="Login Image">
+    </div>
 
-<form method="post">
-{% csrf_token %}
+    <!-- RIGHT PANEL (Your existing login box) -->
+    <div class="right-panel">
 
-<input type="text" name="username" placeholder="Username" required>
+        <div class="login-box">
 
-<input type="password" name="password" placeholder="Password" required>
+            <h2>TTMMPay Login</h2>
 
-<button type="submit">Login</button>
+            <form method="post">
+                {% csrf_token %}
 
-</form>
+                <input type="text" name="username" placeholder="Username" required>
 
-{% if error %}
-<p class="error">{{ error }}</p>
-{% endif %}
+                <input type="password" name="password" placeholder="Password" required>
 
-<p class="signup">
-Don't have an account? <a href="{% url 'register' %}">Sign Up</a>
-</p>
+                <button type="submit">Login</button>
+            </form>
+
+            {% if error %}
+            <p class="error">{{ error }}</p>
+            {% endif %}
+
+            <p class="signup">
+                Don't have an account? 
+                <a href="{% url 'register' %}">Sign Up</a>
+            </p>
+
+        </div>
+
+    </div>
 
 </div>
 
 </body>
-
 </html>
