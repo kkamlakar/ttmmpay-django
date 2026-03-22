@@ -142,6 +142,27 @@ table tr:hover{
 
 </div>
 
+<h3>Extras</h3>
+
+<!-- TAX -->
+<label>Tax:</label>
+<input type="number" id="tax" value="0" oninput="renderSummary()">
+
+<div>
+  <label>Select people for Tax:</label><br>
+  <div id="taxPeopleContainer"></div>
+</div>
+
+<br>
+
+<!-- TIP -->
+<label>Tip:</label>
+<input type="number" id="tip" value="0" oninput="renderSummary()">
+
+<div>
+  <label>Select people for Tip:</label><br>
+  <div id="tipPeopleContainer"></div>
+</div>
 <!-- RIGHT PANEL -->
 <div class="panel right">
 
@@ -202,6 +223,7 @@ document.getElementById('personName').focus()
 
 updatePersonList()
 updateItemConsumption()
+updateExtrasCheckboxes();
 
 }
 
@@ -248,6 +270,7 @@ item.consumed = item.consumed.map(p => p === oldName ? newName : p)
 
 updatePersonList()
 updateItemConsumption()
+updateExtrasCheckboxes();
 
 }
 
@@ -261,6 +284,7 @@ item.consumed = item.consumed.filter(p=>p!==name)
 
 updatePersonList()
 updateItemConsumption()
+updateExtrasCheckboxes();
 
 }
 
@@ -438,86 +462,128 @@ renderSummary()
 // Render summary
 function renderSummary(){
 
-const summaryTable=document.getElementById("summaryTable")
+const summaryTable = document.getElementById("summaryTable");
 
-summaryTable.innerHTML=`
+summaryTable.innerHTML = `
 <tr>
 <th>Item</th>
 <th>Consumed By</th>
 <th>Total Price</th>
 <th>Price per Person</th>
 </tr>
-`
+`;
 
-const totals={}
+const totals = {};
 
-persons.forEach(p=>totals[p]=0)
+// ✅ Step 1: initialize
+persons.forEach(p => totals[p] = 0);
 
-items.forEach(item=>{
+// ✅ Step 2: item calculation
+items.forEach(item => {
 
-const row=summaryTable.insertRow()
+    const row = summaryTable.insertRow();
 
-row.insertCell(0).innerText=item.name
-row.insertCell(1).innerText=item.consumed.join(", ") || "-"
-row.insertCell(2).innerText=item.price.toFixed(2)
+    row.insertCell(0).innerText = item.name;
+    row.insertCell(1).innerText = item.consumed.join(", ") || "-";
+    row.insertCell(2).innerText = item.price.toFixed(2);
 
-const share=item.consumed.length?item.price/item.consumed.length:0
+    const share = item.consumed.length ? item.price / item.consumed.length : 0;
 
-row.insertCell(3).innerText=share.toFixed(2)
+    row.insertCell(3).innerText = share.toFixed(2);
 
-item.consumed.forEach(p=>totals[p]+=share)
+    item.consumed.forEach(p => totals[p] += share);
 
-})
+});
 
 
-const finalTable=document.getElementById("finalTable")
+// ===== TAX =====
+let tax = parseFloat(document.getElementById('tax').value) || 0;
 
-finalTable.innerHTML=`<tr><th>Person</th><th>Total Amount</th></tr>`
+let taxPeople = [];
+document.querySelectorAll('.taxPerson:checked').forEach(cb => {
+    taxPeople.push(cb.value);
+});
 
-for(const p in totals){
+if (tax > 0 && taxPeople.length > 0) {
+    let taxPerPerson = tax / taxPeople.length;
 
-const row=finalTable.insertRow()
+    taxPeople.forEach(p => {
+        if (totals[p] !== undefined) {
+            totals[p] += taxPerPerson;
+        }
+    });
+}
 
-row.insertCell(0).innerText=p
-row.insertCell(1).innerText=totals[p].toFixed(2)
+
+// ===== TIP =====
+let tip = parseFloat(document.getElementById('tip').value) || 0;
+
+let tipPeople = [];
+document.querySelectorAll('.tipPerson:checked').forEach(cb => {
+    tipPeople.push(cb.value);
+});
+
+if (tip > 0 && tipPeople.length > 0) {
+    let tipPerPerson = tip / tipPeople.length;
+
+    tipPeople.forEach(p => {
+        if (totals[p] !== undefined) {
+            totals[p] += tipPerPerson;
+        }
+    });
+}
+
+
+// ✅ Step 5: render final table
+const finalTable = document.getElementById("finalTable");
+
+finalTable.innerHTML = `<tr><th>Person</th><th>Total Amount</th></tr>`;
+
+for (const p in totals){
+
+    const row = finalTable.insertRow();
+
+    row.insertCell(0).innerText = p;
+    row.insertCell(1).innerText = totals[p].toFixed(2);
 
 }
 
 }
-
 
 // SAVE BILL
 function saveBill(){
 
 fetch("/save-bill/",{
 
-method:"POST",
+    method:"POST",
 
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie('csrftoken')
-},
+    headers:{
+        "Content-Type":"application/json",
+        "X-CSRFToken":getCookie('csrftoken')
+    },
 
-body:JSON.stringify({
-persons:persons,
-items:items
-})
+    body: JSON.stringify({
+        persons: persons,
+        items: items,
+        tax: parseFloat(document.getElementById('tax').value) || 0,
+        tip: parseFloat(document.getElementById('tip').value) || 0,
+        taxPeople: Array.from(document.querySelectorAll('.taxPerson:checked')).map(cb => cb.value),
+        tipPeople: Array.from(document.querySelectorAll('.tipPerson:checked')).map(cb => cb.value)
+    })
 
-})
+})  // ✅ THIS WAS MISSING
+
 .then(res => res.json())
 .then(data => {
 
     if(data.status === "success"){
-
         window.location.href = "/summary/";
-
     }else{
-
         alert("Error saving bill");
-
     }
 
 })
+
 }
 
 
@@ -556,6 +622,111 @@ function capitalizeWords(text){
     });
 }
 
+function updateExtrasCheckboxes(){
+
+const taxDiv = document.getElementById("taxPeopleContainer");
+const tipDiv = document.getElementById("tipPeopleContainer");
+
+taxDiv.innerHTML = "";
+tipDiv.innerHTML = "";
+
+// ===== TAX SELECT ALL =====
+const taxSelectAllLabel = document.createElement("label");
+const taxSelectAll = document.createElement("input");
+
+taxSelectAll.type = "checkbox";
+taxSelectAll.checked = true;
+
+taxSelectAll.onchange = function () {
+
+    document.querySelectorAll('.taxPerson').forEach(cb => {
+        cb.checked = this.checked;
+    });
+
+    renderSummary();
+};
+
+taxSelectAllLabel.appendChild(taxSelectAll);
+taxSelectAllLabel.appendChild(document.createTextNode(" Select All"));
+
+taxDiv.appendChild(taxSelectAllLabel);
+taxDiv.appendChild(document.createElement("br"));
+
+
+// ===== TIP SELECT ALL =====
+const tipSelectAllLabel = document.createElement("label");
+const tipSelectAll = document.createElement("input");
+
+tipSelectAll.type = "checkbox";
+tipSelectAll.checked = true;
+
+tipSelectAll.onchange = function () {
+
+    document.querySelectorAll('.tipPerson').forEach(cb => {
+        cb.checked = this.checked;
+    });
+
+    renderSummary();
+};
+
+tipSelectAllLabel.appendChild(tipSelectAll);
+tipSelectAllLabel.appendChild(document.createTextNode(" Select All"));
+
+tipDiv.appendChild(tipSelectAllLabel);
+tipDiv.appendChild(document.createElement("br"));
+
+persons.forEach(p => {
+
+    // TAX
+    const taxLabel = document.createElement("label");
+    const taxCb = document.createElement("input");
+
+    taxCb.type = "checkbox";
+    taxCb.checked = true;
+    taxCb.className = "taxPerson";
+    taxCb.value = p;
+
+    taxCb.onchange = function () {
+
+        const all = document.querySelectorAll('.taxPerson');
+        const checked = document.querySelectorAll('.taxPerson:checked');
+
+        taxSelectAll.checked = all.length === checked.length;
+
+        renderSummary();
+    };
+    taxLabel.appendChild(taxCb);
+    taxLabel.appendChild(document.createTextNode(p));
+
+    taxDiv.appendChild(taxLabel);
+
+
+    // TIP
+    const tipLabel = document.createElement("label");
+    const tipCb = document.createElement("input");
+
+    tipCb.type = "checkbox";
+    tipCb.checked = true;
+    tipCb.className = "tipPerson";
+    tipCb.value = p;
+
+    tipCb.onchange = function () {
+
+        const all = document.querySelectorAll('.tipPerson');
+        const checked = document.querySelectorAll('.tipPerson:checked');
+
+        tipSelectAll.checked = all.length === checked.length;
+
+        renderSummary();
+    };
+
+    tipLabel.appendChild(tipCb);
+    tipLabel.appendChild(document.createTextNode(p));
+
+    tipDiv.appendChild(tipLabel);
+
+});
+}
 </script>
 
 </body>

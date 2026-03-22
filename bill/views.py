@@ -274,7 +274,11 @@ def save_bill(request):
         print("DATA RECEIVED:", data)
 
         persons = data.get("persons", [])
-        items = data.get("items", [])
+        items = data.get("items", [])   
+        tax = data.get("tax", 0)
+        tip = data.get("tip", 0)
+        tax_people = data.get("taxPeople", [])
+        tip_people = data.get("tipPeople", [])
 
         conn = get_connection()
         cursor = conn.cursor()
@@ -299,6 +303,9 @@ def save_bill(request):
             item_price = item["price"]
             consumers = item["consumed"]
 
+            if len(consumers) == 0:
+                continue
+
             split_price = item_price / len(consumers)
 
             for person in consumers:
@@ -318,7 +325,28 @@ def save_bill(request):
                     0,
                     bill_id
                 ))
+        # -------------------------
+        # APPLY TAX
+        # -------------------------
+        if tax > 0 and len(tax_people) > 0:
 
+            tax_per_person = tax / len(tax_people)
+
+            for p in tax_people:
+                if p in person_totals:
+                    person_totals[p] += tax_per_person
+
+
+        # -------------------------
+        # APPLY TIP
+        # -------------------------
+        if tip > 0 and len(tip_people) > 0:
+
+            tip_per_person = tip / len(tip_people)
+
+            for p in tip_people:
+                if p in person_totals:
+                    person_totals[p] += tip_per_person
         # -------------------------
         # UPDATE FINAL PRICE
         # -------------------------
