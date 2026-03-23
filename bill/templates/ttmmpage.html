@@ -108,7 +108,67 @@ table tr:hover{
 .nav{
     margin-bottom:20px;
 }
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap;   /* allows wrapping if too many names */
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 8px;
+}
 
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.15);
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.checkbox-row:hover {
+    background: rgba(255,255,255,0.3);
+}
+.checkbox-row input {
+    cursor: pointer;
+}
+
+.select-all-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.extras-table {
+    width: 100%;
+    margin-top: 10px;
+    border-spacing: 20px;
+}
+
+.extras-table td {
+    vertical-align: top;
+    background: rgba(255,255,255,0.08);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.select-all-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: #FFD966;   /* highlight color */
+    color: black;
+    font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -118,18 +178,25 @@ table tr:hover{
 <div class="container">
 
 <!-- LEFT PANEL -->
-<div class="panel left">
-
+<table class="extras-table">
+<tr>
+<td>
 <h3>Step 1: Add Persons</h3>
 
 <input type="text" id="personName" placeholder="Person Name">
 <button onclick="addPerson()">Add Person</button>
 <p><b>Persons Added:</b> <span id="personCount">0</span></p>
 
-<ul id="personList"></ul>
+<table id="personList">
+<tr>
+    <th>Name</th>
+    <th>Edit</th>
+    <th>Delete</th>
+</tr>
+</table>
 
-<hr>
-
+</td>
+<td>
 <h3>Step 2: Add Items</h3>
 
 <input type="text" id="itemName" placeholder="Item Name">
@@ -138,31 +205,40 @@ table tr:hover{
 <button onclick="addItem()">Add Item</button>
 <p><b>Items Added:</b> <span id="itemCount">0</span></p>
 
-<ul id="itemList"></ul>
+<table id="itemList">
+<tr>
+    <th>Item</th>
+    <th>Price</th>
+    <th>Edit</th>
+    <th>Delete</th>
+</tr>
+</table>
 
-</div>
-
+</td>
+</tr>
+</table>
 <h3>Extras</h3>
 
-<!-- TAX -->
-<label>Tax:</label>
-<input type="number" id="tax" value="0" oninput="renderSummary()">
+<table class="extras-table">
+<tr>
+    <!-- TAX COLUMN -->
+    <td>
+        <label><b>Tax:</b></label><br>
+        <input type="number" id="tax" value="0" oninput="renderSummary()">
 
-<div>
-  <label>Select people for Tax:</label><br>
-  <div id="taxPeopleContainer"></div>
-</div>
+        <div class="checkbox-container" id="taxPeopleContainer"></div>
+    </td>
 
-<br>
+    <!-- TIP COLUMN -->
+    <td>
+        <label><b>Tip:</b></label><br>
+        <input type="number" id="tip" value="0" oninput="renderSummary()">
 
-<!-- TIP -->
-<label>Tip:</label>
-<input type="number" id="tip" value="0" oninput="renderSummary()">
+        <div class="checkbox-container" id="tipPeopleContainer"></div>
+    </td>
+</tr>
+</table>
 
-<div>
-  <label>Select people for Tip:</label><br>
-  <div id="tipPeopleContainer"></div>
-</div>
 <!-- RIGHT PANEL -->
 <div class="panel right">
 
@@ -231,21 +307,28 @@ updateExtrasCheckboxes();
 // Update person list
 function updatePersonList(){
 
-const ul = document.getElementById("personList")
-ul.innerHTML=""
+const table = document.getElementById("personList")
 
+table.innerHTML = `
+<tr>
+    <th>Name</th>
+    <th>Edit</th>
+    <th>Delete</th>
+</tr>
+`
 persons.forEach(p => {
 
-const li = document.createElement("li")
+const row = table.insertRow()
 
-li.innerHTML = `
-${p} 
+row.insertCell(0).innerText = p
+
+row.insertCell(1).innerHTML = `
 <button onclick="editPerson('${p}')">Edit</button>
-<button onclick="deletePerson('${p}')">Delete</button>
 `
 
-ul.appendChild(li)
-
+row.insertCell(2).innerHTML = `
+<button onclick="deletePerson('${p}')">Delete</button>
+`
 })
 
 document.getElementById("personCount").innerText = persons.length
@@ -314,19 +397,31 @@ updateItemConsumption()
 // Update item list
 function updateItemList(){
 
-const ul = document.getElementById("itemList")
-ul.innerHTML=""
+const table = document.getElementById("itemList")
+
+table.innerHTML = `
+<tr>
+    <th>Item</th>
+    <th>Price</th>
+    <th>Edit</th>
+    <th>Delete</th>
+</tr>
+`
 
 items.forEach(item => {
 
-const li = document.createElement("li")
-li.innerHTML = `
-${item.name} - ₹${item.price.toFixed(2)}
+const row = table.insertRow()
+
+row.insertCell(0).innerText = item.name
+row.insertCell(1).innerText = "₹" + item.price.toFixed(2)
+
+row.insertCell(2).innerHTML = `
 <button onclick="editItem(${items.indexOf(item)})">Edit</button>
+`
+
+row.insertCell(3).innerHTML = `
 <button onclick="deleteItem(${items.indexOf(item)})">Delete</button>
 `
-ul.appendChild(li)
-
 })
 
 document.getElementById("itemCount").innerText = items.length
@@ -382,11 +477,12 @@ title.innerText = `${item.name} (₹${item.price.toFixed(2)})`
 itemDiv.appendChild(title)
 
 const checkboxes = document.createElement("div")
-checkboxes.className="checkboxes"
+checkboxes.className="checkbox-container"
 
 
 // Select All checkbox
-const selectAllLabel = document.createElement("label")
+const selectAllLabel = document.createElement("div")
+selectAllLabel.className = "select-all-box"
 const selectAll = document.createElement("input")
 
 selectAll.type="checkbox"
@@ -411,19 +507,11 @@ selectAllLabel.appendChild(document.createTextNode(" Select All"))
 
 checkboxes.appendChild(selectAllLabel)
 
-
-// divider
-const divider = document.createElement("hr")
-divider.style.width="100%"
-divider.style.margin="3px 0"
-
-checkboxes.appendChild(divider)
-
-
 // persons checkboxes
 persons.forEach(p=>{
 
-const label=document.createElement("label")
+const label=document.createElement("div")
+label.className = "checkbox-row"
 const cb=document.createElement("input")
 
 cb.type="checkbox"
@@ -631,7 +719,8 @@ taxDiv.innerHTML = "";
 tipDiv.innerHTML = "";
 
 // ===== TAX SELECT ALL =====
-const taxSelectAllLabel = document.createElement("label");
+const taxSelectAllLabel = document.createElement("div");
+taxSelectAllLabel.className = "select-all-box";
 const taxSelectAll = document.createElement("input");
 
 taxSelectAll.type = "checkbox";
@@ -650,11 +739,11 @@ taxSelectAllLabel.appendChild(taxSelectAll);
 taxSelectAllLabel.appendChild(document.createTextNode(" Select All"));
 
 taxDiv.appendChild(taxSelectAllLabel);
-taxDiv.appendChild(document.createElement("br"));
 
 
 // ===== TIP SELECT ALL =====
 const tipSelectAllLabel = document.createElement("label");
+tipSelectAllLabel.className = "select-all-box";
 const tipSelectAll = document.createElement("input");
 
 tipSelectAll.type = "checkbox";
@@ -673,12 +762,12 @@ tipSelectAllLabel.appendChild(tipSelectAll);
 tipSelectAllLabel.appendChild(document.createTextNode(" Select All"));
 
 tipDiv.appendChild(tipSelectAllLabel);
-tipDiv.appendChild(document.createElement("br"));
 
 persons.forEach(p => {
 
     // TAX
-    const taxLabel = document.createElement("label");
+    const taxLabel = document.createElement("div");
+    taxLabel.className = "checkbox-row";
     const taxCb = document.createElement("input");
 
     taxCb.type = "checkbox";
@@ -702,7 +791,8 @@ persons.forEach(p => {
 
 
     // TIP
-    const tipLabel = document.createElement("label");
+    const tipLabel = document.createElement("div");
+    tipLabel.className = "checkbox-row";
     const tipCb = document.createElement("input");
 
     tipCb.type = "checkbox";
