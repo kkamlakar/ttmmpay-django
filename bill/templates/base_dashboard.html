@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+{% load static %}
+
+<head>
+    <title>TTMMPay</title>
+
+    <style>
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* TOP MENU */
+        .topbar {
+            height: 60px;
+            background: #2c3e50;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .topbar a {
+            color: white;
+            margin-right: 20px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        /* MAIN LAYOUT */
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* LEFT BILL LIST */
+        .sidebar {
+            width: 250px;
+            background: #34495e;
+            color: white;
+            overflow-y: auto;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 12px;
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid #2c3e50;
+        }
+
+        .sidebar a:hover {
+            background: #1abc9c;
+        }
+
+        /* RIGHT MAIN PANEL */
+        .main {
+            flex: 1;
+            padding: 20px;
+            background: #ecf0f1;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <!-- TOP MENU -->
+    <div class="topbar">
+        <a href="{% url 'dashboard' %}">Home</a>
+        <a href="{% url 'add_bill' %}">New Bill</a>
+        <a href="{% url 'summary' %}">Summary</a>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+    <!-- MAIN -->
+    <div class="container">
+
+        <!-- LEFT: BILL LIST -->
+        <div class="sidebar">
+            <h3 style="padding:10px;">Bills</h3>
+
+            {% for bill in bills %}
+                <a href="{% url 'bill_detail' bill.0 %}">
+                    {{ bill.1 }}
+                </a>
+            {% endfor %}
+        </div>
+        <!-- RIGHT: DYNAMIC CONTENT -->
+        <div class="main">
+            {% block content %}
+            {% endblock %}
+        </div>
+
+    </div>
+
+</body>
+</html>

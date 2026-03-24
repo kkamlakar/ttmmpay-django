@@ -47,7 +47,7 @@ def login_view(request):
             request.session['email'] = user[1]
             request.session['username'] = user[2]
 
-            return redirect('ttmmpage')
+            return redirect('dashboard')
 
         else:
             return render(request, "login.html", {"error": "Invalid username or password"})
@@ -424,4 +424,52 @@ def summary_page(request, bill_id=None):
         "bill_id": bill_id,
         "max_id": max_id,
         "min_id": min_id
+    })
+
+
+def dashboard(request):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT BillId, RestaurantName
+        FROM BillMaster
+        ORDER BY BillId DESC
+    """)
+
+    bills = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render(request, 'dashboard.html', {'bills': bills})
+
+def bill_detail(request, id):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Get all bills (for sidebar)
+    cursor.execute("""
+        SELECT BillId, RestaurantName
+        FROM BillMaster
+        ORDER BY BillId DESC
+    """)
+    bills = cursor.fetchall()
+
+    # Get selected bill
+    cursor.execute("""
+        SELECT *
+        FROM BillMaster
+        WHERE BillId = ?
+    """, (id,))
+    bill = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return render(request, 'bill_detail.html', {
+        'bill': bill,
+        'bills': bills
     })
