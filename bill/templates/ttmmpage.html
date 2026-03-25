@@ -665,7 +665,7 @@ fetch("/save-bill/",{
 .then(data => {
 
     if(data.status === "success"){
-        window.location.href = "/summary/";
+        window.location.href = "/summary/" + data.bill_id + "/";
     }else{
         alert("Error saving bill");
     }

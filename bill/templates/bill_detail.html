@@ -3,19 +3,29 @@
 {% block content %}
 
 <div class="card">
-    <h2>{{ bill.name }}</h2>
+    <h2>{{ bill.1 }}</h2> <!-- Restaurant name -->
 
-    <p>This is where:</p>
-    <ul>
-        <li>Add Person</li>
-        <li>Add Dish</li>
-        <li>Assign people</li>
-    </ul>
+    <h3>Add Person</h3>
+    <!-- your form here -->
+
+    <h3>Persons</h3>
+    {% for p in persons %}
+        <p>{{ p.1 }}</p>
+    {% endfor %}
 </div>
 
 <div class="card">
-    <h2>Summary</h2>
-    <p>Split bill result will come here</p>
+    <h3>Items</h3>
+    {% for item in items %}
+        <p>{{ item.1 }} - ₹{{ item.2 }}</p>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h3>Summary</h3>
+    {% for t in totals %}
+        <p>{{ t.0 }} → ₹{{ t.1 }}</p>
+    {% endfor %}
 </div>
 
 {% endblock %}

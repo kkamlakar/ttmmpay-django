@@ -119,3 +119,5 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / "static"
 ]
+
+X_FRAME_OPTIONS = 'SAMEORIGIN'

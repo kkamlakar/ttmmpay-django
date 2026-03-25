@@ -3,6 +3,7 @@ from datetime import datetime
 import pyodbc
 import json
 from django.http import JsonResponse
+from collections import defaultdict
 
 
 
@@ -137,7 +138,7 @@ def ttmmpage(request):
             remarks = request.POST.get("remarks")
 
             createddatetime = datetime.now()
-
+        
             cursor.execute("""
             INSERT INTO BillMaster
             (RestaurantName, Location, BillType, BillDate, BillTime, RemarksOrNotes, CreatedDateTime)
@@ -364,7 +365,7 @@ def save_bill(request):
         cursor.close()
         conn.close()
 
-        return JsonResponse({"status": "success"})
+        return JsonResponse({"status": "success", "bill_id": bill_id})
 
     except Exception as e:
 
@@ -427,30 +428,17 @@ def summary_page(request, bill_id=None):
     })
 
 
-def dashboard(request):
 
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT BillId, RestaurantName
-        FROM BillMaster
-        ORDER BY BillId DESC
-    """)
-
-    bills = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return render(request, 'dashboard.html', {'bills': bills})
 
 def bill_detail(request, id):
 
+    if not request.session.get('username'):
+        return redirect('login')
+
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Get all bills (for sidebar)
+    # Sidebar bills
     cursor.execute("""
         SELECT BillId, RestaurantName
         FROM BillMaster
@@ -458,7 +446,7 @@ def bill_detail(request, id):
     """)
     bills = cursor.fetchall()
 
-    # Get selected bill
+    # Selected bill
     cursor.execute("""
         SELECT *
         FROM BillMaster
@@ -466,10 +454,67 @@ def bill_detail(request, id):
     """, (id,))
     bill = cursor.fetchone()
 
+    # Persons
+    cursor.execute("""
+        SELECT PersonId, PersonName
+        FROM BillParticipants
+        WHERE BillId = ?
+    """, (id,))
+    persons = cursor.fetchall()
+
+    # Items
+    cursor.execute("""
+        SELECT ItemId, ItemName, Price
+        FROM BillItems
+        WHERE BillId = ?
+    """, (id,))
+    items = cursor.fetchall()
+
+    # Summary
+    cursor.execute("""
+        SELECT PersonName, MAX(FinalPrice)
+        FROM BillSummary
+        WHERE BillId = ?
+        GROUP BY PersonName
+    """, (id,))
+    totals = cursor.fetchall()
+
     cursor.close()
     conn.close()
 
     return render(request, 'bill_detail.html', {
         'bill': bill,
-        'bills': bills
+        'bills': bills,
+        'persons': persons,
+        'items': items,
+        'totals': totals
+    })
+
+
+def dashboard(request):
+
+    if not request.session.get('username'):
+        return redirect('login')
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT BillId, Date
+        FROM BillSummary
+        ORDER BY Date DESC, BillId DESC
+    """)
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    bills_by_date = defaultdict(list)
+
+    for bill_id, date in rows:
+        bills_by_date[str(date)].append(bill_id)
+
+    return render(request, 'dashboard.html', {
+        "bills_by_date": dict(bills_by_date)
     })

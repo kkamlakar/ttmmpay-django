@@ -79,21 +79,19 @@
     <!-- TOP MENU -->
     <div class="topbar">
         <a href="{% url 'dashboard' %}">Home</a>
-        <a href="{% url 'add_bill' %}">New Bill</a>
-        <a href="{% url 'summary' %}">Summary</a>
         <a href="{% url 'logout' %}">Logout</a>
     </div>
 
     <!-- MAIN -->
     <div class="container">
 
-        <!-- LEFT: BILL LIST -->
+        <!-- LEFT: DATES -->
         <div class="sidebar">
-            <h3 style="padding:10px;">Bills</h3>
+            <h3 style="padding:10px;">Dates</h3>
 
-            {% for bill in bills %}
-                <a href="{% url 'bill_detail' bill.0 %}">
-                    {{ bill.1 }}
+            {% for date in bills_by_date.keys %}
+                <a href="#" onclick="loadBills('{{ date }}')">
+                    {{ date }}
                 </a>
             {% endfor %}
         </div>
