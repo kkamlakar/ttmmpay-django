@@ -521,12 +521,10 @@ def dashboard(request):
     username = request.session.get('username')
     
     cursor.execute("""
-        SELECT bm.BillId, MAX(bs.Date) as Date
+        SELECT bm.BillId, bm.RestaurantName, bm.BillDate
         FROM BillMaster bm
-        JOIN BillSummary bs ON bm.BillId = bs.BillId
         WHERE bm.UserName = ?
-        GROUP BY bm.BillId
-        ORDER BY Date DESC, bm.BillId DESC
+        ORDER BY bm.BillDate DESC, bm.BillId DESC
     """, (username,))
 
     rows = cursor.fetchall()
@@ -536,14 +534,17 @@ def dashboard(request):
 
     bills_by_date = defaultdict(list)
 
-    for bill_id, date in rows:
-        bills_by_date[date.strftime("%Y-%m-%d")].append(bill_id)
+    for bill_id, name, date in rows:
+        bills_by_date[date.strftime("%Y-%m-%d")].append({
+            "id": bill_id,
+            "name": name
+        })
 
     # ✅ create sorted list of dates (descending)
     sorted_dates = []
     seen = set()
 
-    for _, date in rows:
+    for _,_, date in rows:
         if date not in seen:
             sorted_dates.append(date)
             seen.add(date)

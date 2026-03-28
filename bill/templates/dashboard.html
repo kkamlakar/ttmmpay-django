@@ -41,13 +41,13 @@ function loadBills(date){
         return;
     }
 
-    bills.forEach(billId => {
+    bills.forEach(bill => {
 
         const div = document.createElement("div");
 
-        div.innerHTML = `<a href="#" onclick="openSummary(${billId})">
-                            Bill ${billId}
-                         </a>`;
+        div.innerHTML = `<a href="#" onclick="openSummary(${bill.id})">
+                            ${bill.name}
+                        </a>`;
 
         billList.appendChild(div);
     });
@@ -55,6 +55,30 @@ function loadBills(date){
 
 function openSummary(billId){
     document.getElementById("contentFrame").src = `/summary/${billId}/`;
+}
+
+function loadAllBills(){
+
+    const billList = document.getElementById("billList");
+    billList.innerHTML = "";
+
+    Object.values(billsData).forEach(bills => {
+
+        bills.forEach(bill => {
+
+            const div = document.createElement("div");
+
+            div.innerHTML = `<a href="#" onclick="openSummary(${bill.id})">
+                                ${bill.name}
+                            </a>`;
+
+            billList.appendChild(div);
+        });
+    });
+}
+
+window.onload = function(){
+    loadAllBills();
 }
 
 </script>
