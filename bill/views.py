@@ -283,6 +283,9 @@ def save_bill(request):
 
         username = request.session.get('username')
 
+        restaurant = data.get("restaurantName")
+        bill_date = data.get("billDate")
+        bill_time = data.get("billTime")
         persons = data.get("persons", [])
         items = data.get("items", [])
         tax = data.get("tax", 0)
@@ -300,11 +303,11 @@ def save_bill(request):
         OUTPUT INSERTED.BillId
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            "Quick Bill",
+            restaurant if restaurant else "Quick Bill",
             "NA",
             "Manual",
-            datetime.now().date(),
-            datetime.now().time(),
+            bill_date if bill_date else datetime.now().date(),
+            bill_time if bill_time else datetime.now().time(),
             "Auto created",
             datetime.now(),
             username

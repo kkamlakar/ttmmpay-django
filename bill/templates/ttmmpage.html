@@ -175,6 +175,16 @@ table tr:hover{
 
 <h1>TTMMPay</h1>
 
+<div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+
+    <input type="text" id="restaurantName" placeholder="Restaurant Name">
+
+    <input type="date" id="billDate">
+
+    <input type="time" id="billTime">
+
+</div>
+
 <div class="container">
 
 <!-- LEFT PANEL -->
@@ -656,36 +666,47 @@ function saveBill(){
         return alert("Assign at least one item to someone");
     }
 
-fetch("/save-bill/",{
 
-    method:"POST",
+    const restaurantName = document.getElementById("restaurantName").value;
+    const billDate = document.getElementById("billDate").value;
+    const billTime = document.getElementById("billTime").value;
 
-    headers:{
-        "Content-Type":"application/json",
-        "X-CSRFToken":getCookie('csrftoken')
-    },
+    console.log(restaurantName, billDate, billTime);  // 👈 check this
 
-    body: JSON.stringify({
-        persons: persons,
-        items: items,
-        tax: parseFloat(document.getElementById('tax').value) || 0,
-        tip: parseFloat(document.getElementById('tip').value) || 0,
-        taxPeople: Array.from(document.querySelectorAll('.taxPerson:checked')).map(cb => cb.value),
-        tipPeople: Array.from(document.querySelectorAll('.tipPerson:checked')).map(cb => cb.value)
+
+    fetch("/save-bill/",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json",
+            "X-CSRFToken":getCookie('csrftoken')
+        },
+
+        body: JSON.stringify({
+            restaurantName: restaurantName,
+            billDate: billDate,
+            billTime: billTime,
+            persons: persons,
+            items: items,
+            tax: parseFloat(document.getElementById('tax').value) || 0,
+            tip: parseFloat(document.getElementById('tip').value) || 0,
+            taxPeople: Array.from(document.querySelectorAll('.taxPerson:checked')).map(cb => cb.value),
+            tipPeople: Array.from(document.querySelectorAll('.tipPerson:checked')).map(cb => cb.value)
+        })
+
+    })  // ✅ THIS WAS MISSING
+
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.status === "success"){
+            window.location.href = "/summary/" + data.bill_id + "/";
+        }else{
+            alert("Error: " + data.message);
+        }
+
     })
-
-})  // ✅ THIS WAS MISSING
-
-.then(res => res.json())
-.then(data => {
-
-    if(data.status === "success"){
-        window.location.href = "/summary/" + data.bill_id + "/";
-    }else{
-        alert("Error: " + data.message);
-    }
-
-})
 
 }
 
