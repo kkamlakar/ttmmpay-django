@@ -139,18 +139,27 @@ def ttmmpage(request):
 
             createddatetime = datetime.now()
         
-            cursor.execute("""
-            INSERT INTO BillMaster
-            (RestaurantName, Location, BillType, BillDate, BillTime, RemarksOrNotes, CreatedDateTime)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (restaurant, location, billtype, billdate, billtime, remarks, createddatetime))
-
-            conn.commit()
-
-            cursor.execute("SELECT SCOPE_IDENTITY()")
-            bill_id = cursor.fetchone()[0]
+            username = request.session.get('username')
             
-            request.session['bill_id'] = int(bill_id)
+            cursor.execute("""
+            INSERT INTO BillMaster 
+            (RestaurantName, Location, BillType, BillDate, BillTime, RemarksOrNotes, CreatedDateTime, UserName)
+            OUTPUT INSERTED.BillId
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                "Quick Bill",
+                "NA",
+                "Manual",
+                datetime.now().date(),
+                datetime.now().time(),
+                "Auto created",
+                datetime.now(),
+                username
+            ))
+
+            bill_id = int(cursor.fetchone()[0])
+
+            request.session['bill_id'] = bill_id
 
             message = f"Bill Created ID: {bill_id}"
 
@@ -269,13 +278,13 @@ def save_bill(request):
         return JsonResponse({"status": "error", "message": "POST required"})
 
     try:
-
-        data = json.loads(request.body)
-
+        data = json.loads(request.body.decode('utf-8'))
         print("DATA RECEIVED:", data)
 
+        username = request.session.get('username')
+
         persons = data.get("persons", [])
-        items = data.get("items", [])   
+        items = data.get("items", [])
         tax = data.get("tax", 0)
         tip = data.get("tip", 0)
         tax_people = data.get("taxPeople", [])
@@ -284,108 +293,108 @@ def save_bill(request):
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT ISNULL(MAX(BillId),0) + 1 FROM billsummary")
-        bill_id = cursor.fetchone()[0]
+        # ✅ ALWAYS CREATE NEW BILL (no dependency on session)
+        cursor.execute("""
+        INSERT INTO BillMaster 
+        (RestaurantName, Location, BillType, BillDate, BillTime, RemarksOrNotes, CreatedDateTime, UserName)
+        OUTPUT INSERTED.BillId
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            "Quick Bill",
+            "NA",
+            "Manual",
+            datetime.now().date(),
+            datetime.now().time(),
+            "Auto created",
+            datetime.now(),
+            username
+        ))
 
-        person_totals = {}
+        bill_id = int(cursor.fetchone()[0])
+        conn.commit()
 
-        for p in persons:
-            person_totals[p] = 0
+        person_totals = {p: 0 for p in persons}
+        today = datetime.now().date()
 
-        today = datetime.now().strftime("%Y-%m-%d")
-
-        # -------------------------
-        # INSERT ITEM SPLITS
-        # -------------------------
-
+        # INSERT ITEMS
         for item in items:
-
-            item_name = item["name"]
-            item_price = item["price"]
-            consumers = item["consumed"]
-
-            if len(consumers) == 0:
+            if not item["consumed"]:
                 continue
 
-            split_price = item_price / len(consumers)
+            split_price = item["price"] / len(item["consumed"])
 
-            for person in consumers:
-
+            for person in item["consumed"]:
                 person_totals[person] += split_price
 
                 cursor.execute("""
                 INSERT INTO BillSummary
-                (Date, PersonName, ItemName, ItemPrice, PerPersonSplitPrice, FinalPrice, BillId)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (Date, PersonName, ItemName, ItemPrice, PerPersonSplitPrice, FinalPrice, BillId, UserName)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     today,
                     person,
-                    item_name,
-                    item_price,
+                    item["name"],
+                    item["price"],
                     split_price,
                     0,
-                    bill_id
+                    bill_id,
+                    username
                 ))
-        # -------------------------
-        # APPLY TAX
-        # -------------------------
-        if tax > 0 and len(tax_people) > 0:
 
-            tax_per_person = tax / len(tax_people)
-
+        # TAX
+        if tax > 0 and tax_people:
+            tax_per = tax / len(tax_people)
             for p in tax_people:
                 if p in person_totals:
-                    person_totals[p] += tax_per_person
+                    person_totals[p] += tax_per
 
-
-        # -------------------------
-        # APPLY TIP
-        # -------------------------
-        if tip > 0 and len(tip_people) > 0:
-
-            tip_per_person = tip / len(tip_people)
-
+        # TIP
+        if tip > 0 and tip_people:
+            tip_per = tip / len(tip_people)
             for p in tip_people:
                 if p in person_totals:
-                    person_totals[p] += tip_per_person
-        # -------------------------
-        # UPDATE FINAL PRICE
-        # -------------------------
+                    person_totals[p] += tip_per
 
+        # UPDATE FINAL
         for person, total in person_totals.items():
-
             cursor.execute("""
             UPDATE BillSummary
             SET FinalPrice = ?
-            WHERE PersonName = ? AND Date = ?
-            """, (total, person, today))
+            WHERE PersonName = ? AND BillId = ? AND UserName = ?
+            """, (total, person, bill_id, username))
 
         conn.commit()
-
         cursor.close()
         conn.close()
 
         return JsonResponse({"status": "success", "bill_id": bill_id})
 
     except Exception as e:
-
         print("SAVE BILL ERROR:", e)
-
         return JsonResponse({"status": "error", "message": str(e)})
     
 
+    
     
 def summary_page(request, bill_id=None):
 
     conn = get_connection()
     cursor = conn.cursor()
 
-    # get max bill id
-    cursor.execute("SELECT MAX(BillId) FROM billsummary")
+    username = request.session.get('username')
+
+    cursor.execute("""
+        SELECT MAX(BillId)
+        FROM billsummary
+        WHERE UserName = ?
+    """, (username,))
     max_id = cursor.fetchone()[0]
 
-    # get min bill id
-    cursor.execute("SELECT MIN(BillId) FROM billsummary")
+    cursor.execute("""
+        SELECT MIN(BillId)
+        FROM billsummary
+        WHERE UserName = ?
+    """, (username,))
     min_id = cursor.fetchone()[0]
 
     if bill_id is None:
@@ -399,21 +408,23 @@ def summary_page(request, bill_id=None):
         bill_id = min_id
 
     # Query 1 → item details
+    username = request.session.get('username')
+
     cursor.execute("""
         SELECT *
         FROM billsummary
-        WHERE BillId = ?
+        WHERE BillId = ? AND UserName = ?
         ORDER BY PersonName, ItemName           
-    """, (bill_id,))
+    """, (bill_id, username))
     rows = cursor.fetchall()
 
     # Query 2 → total per person
     cursor.execute("""
         SELECT PersonName, MAX(FinalPrice)
         FROM billsummary
-        WHERE BillId = ?
+        WHERE BillId = ? AND UserName = ?
         GROUP BY PersonName    
-    """, (bill_id,))
+    """, (bill_id, username))
     totals = cursor.fetchall()
 
     cursor.close()
@@ -439,20 +450,28 @@ def bill_detail(request, id):
     cursor = conn.cursor()
 
     # Sidebar bills
-    cursor.execute("""
-        SELECT BillId, RestaurantName
-        FROM BillMaster
-        ORDER BY BillId DESC
-    """)
-    bills = cursor.fetchall()
+    username = request.session.get('username')
 
-    # Selected bill
     cursor.execute("""
         SELECT *
         FROM BillMaster
-        WHERE BillId = ?
-    """, (id,))
+        WHERE BillId = ? AND UserName = ?
+    """, (id, username))
+
     bill = cursor.fetchone()
+
+    # NOW run sidebar query
+    cursor.execute("""
+        SELECT BillId, RestaurantName
+        FROM BillMaster
+        WHERE UserName = ?
+        ORDER BY BillId DESC
+    """, (username,))
+    bills = cursor.fetchall()
+
+
+    if not bill:
+        return redirect('dashboard')
 
     # Persons
     cursor.execute("""
@@ -499,11 +518,16 @@ def dashboard(request):
     conn = get_connection()
     cursor = conn.cursor()
 
+    username = request.session.get('username')
+    
     cursor.execute("""
-        SELECT BillId, Date
-        FROM BillSummary
-        ORDER BY Date DESC, BillId DESC
-    """)
+        SELECT bm.BillId, MAX(bs.Date) as Date
+        FROM BillMaster bm
+        JOIN BillSummary bs ON bm.BillId = bs.BillId
+        WHERE bm.UserName = ?
+        GROUP BY bm.BillId
+        ORDER BY Date DESC, bm.BillId DESC
+    """, (username,))
 
     rows = cursor.fetchall()
 
@@ -513,8 +537,18 @@ def dashboard(request):
     bills_by_date = defaultdict(list)
 
     for bill_id, date in rows:
-        bills_by_date[str(date)].append(bill_id)
+        bills_by_date[date.strftime("%Y-%m-%d")].append(bill_id)
+
+    # ✅ create sorted list of dates (descending)
+    sorted_dates = []
+    seen = set()
+
+    for _, date in rows:
+        if date not in seen:
+            sorted_dates.append(date)
+            seen.add(date)
 
     return render(request, 'dashboard.html', {
-        "bills_by_date": dict(bills_by_date)
+        "bills_by_date": dict(bills_by_date),
+        "sorted_dates": sorted_dates
     })

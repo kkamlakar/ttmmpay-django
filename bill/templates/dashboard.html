@@ -4,7 +4,7 @@
 
 <div style="display:flex; gap:20px;">
 
-    <!-- LEFT PART OF MAIN: BILLS -->
+    <!-- LEFT: BILLS -->
     <div style="width:250px;">
         <div class="card">
             <h3>Bills</h3>
@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    <!-- RIGHT PART: CONTENT -->
+    <!-- RIGHT: CONTENT -->
     <div style="flex:1;">
         <iframe id="contentFrame"
                 src="{% url 'ttmmpage' %}" 
@@ -36,7 +36,7 @@ function loadBills(date){
 
     const bills = billsData[date];
 
-    if(!bills){
+    if(!bills || bills.length === 0){
         billList.innerHTML = "<p>No bills</p>";
         return;
     }
@@ -55,14 +55,6 @@ function loadBills(date){
 
 function openSummary(billId){
     document.getElementById("contentFrame").src = `/summary/${billId}/`;
-}
-
-// Auto-load latest
-window.onload = function(){
-    const firstDate = Object.keys(billsData)[0];
-    if(firstDate){
-        loadBills(firstDate);
-    }
 }
 
 </script>

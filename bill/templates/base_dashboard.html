@@ -89,12 +89,12 @@
         <div class="sidebar">
             <h3 style="padding:10px;">Dates</h3>
 
-            {% for date in bills_by_date.keys %}
-                <a href="#" onclick="loadBills('{{ date }}')">
-                    {{ date }}
-                </a>
-            {% endfor %}
-        </div>
+                {% for date in sorted_dates %}
+                    <a href="#" onclick="loadBills('{{ date|date:"Y-m-d" }}')">
+                        {{ date|date:"d M Y" }}
+                    </a>
+                {% endfor %}    
+            </div>
         <!-- RIGHT: DYNAMIC CONTENT -->
         <div class="main">
             {% block content %}

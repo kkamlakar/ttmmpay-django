@@ -641,6 +641,21 @@ for (const p in totals){
 // SAVE BILL
 function saveBill(){
 
+    if(persons.length === 0){
+        return alert("Add at least one person");
+    }
+
+    if(items.length === 0){
+        return alert("Add at least one item");
+    }
+
+    // check if at least one item is consumed
+    let hasConsumption = items.some(item => item.consumed.length > 0);
+
+    if(!hasConsumption){
+        return alert("Assign at least one item to someone");
+    }
+
 fetch("/save-bill/",{
 
     method:"POST",
@@ -667,7 +682,7 @@ fetch("/save-bill/",{
     if(data.status === "success"){
         window.location.href = "/summary/" + data.bill_id + "/";
     }else{
-        alert("Error saving bill");
+        alert("Error: " + data.message);
     }
 
 })
