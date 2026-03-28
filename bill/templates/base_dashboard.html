@@ -87,14 +87,44 @@
 
         <!-- LEFT: DATES -->
         <div class="sidebar">
-            <h3 style="padding:10px;">Dates</h3>
+            <h3>Dates</h3>
+            {% for year, months in dates_by_year.items %}
+                <div style="font-weight:bold; margin-top:5px;">{{ year }}</div>
+                {% for month, days in months.items %}
+                    <div style="padding-left:10px; font-weight:bold;">{{ month }}</div>
+                    <div style="padding-left:20px;">
+                        {% for day in days %}
+                            <a href="#" onclick="loadBills('{{ day|date:'Y-m-d' }}')">{{ day|date:'d' }}</a><br>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
 
-                {% for date in sorted_dates %}
-                    <a href="#" onclick="loadBills('{{ date|date:"Y-m-d" }}')">
-                        {{ date|date:"d M Y" }}
-                    </a>
-                {% endfor %}    
-            </div>
+        <style>
+        .sidebar a {
+            color: #FFD966;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            text-decoration: underline;
+        }
+        </style>
+
+        <script>
+        function toggleVisibility(id){
+            const el = document.getElementById(id);
+            if(!el) return;
+            el.classList.toggle('hidden');
+
+            // rotate arrow
+            const arrow = el.previousElementSibling.querySelector('span');
+            if(arrow){
+                if(el.classList.contains('hidden')) arrow.innerHTML = '&#9658;'; // right arrow
+                else arrow.innerHTML = '&#9660;'; // down arrow
+            }
+        }
+        </script>
         <!-- RIGHT: DYNAMIC CONTENT -->
         <div class="main">
             {% block content %}

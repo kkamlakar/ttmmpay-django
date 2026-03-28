@@ -514,45 +514,56 @@ def bill_detail(request, id):
 
 
 def dashboard(request):
-
     if not request.session.get('username'):
         return redirect('login')
 
+    username = request.session.get('username')
     conn = get_connection()
     cursor = conn.cursor()
 
-    username = request.session.get('username')
-    
+    # -------------------------
+    # Fetch all bills for this user
+    # -------------------------
     cursor.execute("""
         SELECT bm.BillId, bm.RestaurantName, bm.BillDate
         FROM BillMaster bm
         WHERE bm.UserName = ?
         ORDER BY bm.BillDate DESC, bm.BillId DESC
     """, (username,))
-
     rows = cursor.fetchall()
-
     cursor.close()
     conn.close()
 
+    # -------------------------
+    # Main bills table
+    # -------------------------
     bills_by_date = defaultdict(list)
-
     for bill_id, name, date in rows:
         bills_by_date[date.strftime("%Y-%m-%d")].append({
             "id": bill_id,
             "name": name
         })
 
-    # ✅ create sorted list of dates (descending)
-    sorted_dates = []
-    seen = set()
+    # -------------------------
+    # Sidebar: group dates by year -> month -> day
+    # -------------------------
+    dates_by_year = defaultdict(lambda: defaultdict(list))
+    for _, _, date in rows:
+        if date != datetime(1900, 1, 1).date():  # ignore dummy dates
+            year = date.year
+            month = date.strftime("%b")  # Jan, Feb, etc.
+            dates_by_year[year][month].append(date)
 
-    for _,_, date in rows:
-        if date not in seen:
-            sorted_dates.append(date)
-            seen.add(date)
+    # Convert nested defaultdicts to dicts for template
+    dates_by_year = {y: dict(m) for y, m in dates_by_year.items()}
 
-    return render(request, 'dashboard.html', {
+    # -------------------------
+    # Render template
+    # -------------------------
+    context = {
         "bills_by_date": dict(bills_by_date),
-        "sorted_dates": sorted_dates
-    })
+        "dates_by_year": dates_by_year,
+    }
+
+    return render(request, 'dashboard.html', context)
+
