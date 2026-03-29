@@ -76,7 +76,33 @@
         }
 
         .sidebar div:hover {
-            background: #1abc9c;
+            background: #9bee16;
+        }
+
+        /* YEAR */
+        .year {
+            font-weight: bold;
+            font-size: 16px;
+            color: #0b8c70;   /* yellow */
+        }
+
+        /* MONTH */
+        .month {
+            padding-left: 10px;
+            font-size: 14px;
+            color: #931495;   /* teal */
+        }
+
+        /* DATE */
+        .day {
+            padding-left: 25px;
+            font-size: 13px;
+            color: #7b074b;   /* light */
+        }
+
+        /* HOVER */
+        .day:hover {
+            background: #c3d4d1;
         }
 
     </style>
@@ -98,27 +124,29 @@
         <div class="sidebar">
             <h3>Dates</h3>
             {% for year, months in dates_by_year.items %}
-            <div onclick="toggle('year-{{year}}')">
-                {{ year }}
-            </div>
 
-            <div id="year-{{year}}" style="display:none;">
-                {% for month, days in months.items %}
-
-                <div onclick="toggle('month-{{year}}-{{month}}')">
-                    {{ month }}
+                <div class="year" onclick="toggle('year-{{year}}')">
+                    {{ year }}
                 </div>
 
-                <div id="month-{{year}}-{{month}}" style="display:none;">
-                    {% for day in days %}
-                    <div onclick="event.stopPropagation(); loadBills('{{ day }}')">
-                        {{ day|slice:"-2:" }}
-                    </div>
+                <div id="year-{{year}}" style="display:none;">
+                    {% for month, days in months.items %}
+
+                        <div class="month" onclick="toggle('month-{{year}}-{{month}}')">
+                            {{ month }}
+                        </div>
+
+                        <div id="month-{{year}}-{{month}}" style="display:none;">
+                            {% for day in days %}
+                                <div class="day" onclick="event.stopPropagation(); loadBills('{{ day }}')">
+                                    {{ day|slice:"-2:" }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
                     {% endfor %}
                 </div>
 
-                {% endfor %}
-            </div>
             {% endfor %}
         </div>
 
