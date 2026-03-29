@@ -5,6 +5,7 @@
 
 <head>
 <title>Bill Summary</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
@@ -158,6 +159,31 @@ a{
 </table>
 
 </div>
+
+<canvas id="billChart" width="200" height="200"></canvas>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+    const dataFromBackend = {{ person_totals|safe }};
+
+    console.log("FINAL DATA:", dataFromBackend);
+
+    const labels = Object.keys(dataFromBackend);
+    const values = Object.values(dataFromBackend);
+
+    new Chart(document.getElementById("billChart"), {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values
+            }]
+        }
+    });
+
+});
+</script>
 
 </body>
 </html>

@@ -76,33 +76,39 @@
         }
 
         .sidebar div:hover {
-            background: #9bee16;
+            background: #1e2d05;
         }
 
         /* YEAR */
         .year {
             font-weight: bold;
             font-size: 16px;
-            color: #0b8c70;   /* yellow */
+            color: #e7eeec;   /* yellow */
         }
 
         /* MONTH */
         .month {
             padding-left: 10px;
             font-size: 14px;
-            color: #931495;   /* teal */
+            color: #e7eeec;   /* teal */
         }
 
         /* DATE */
         .day {
             padding-left: 25px;
             font-size: 13px;
-            color: #7b074b;   /* light */
+            color: #e7eeec;   /* light */
         }
 
         /* HOVER */
         .day:hover {
-            background: #c3d4d1;
+            background: #aac77c;
+        }
+        
+        .username {
+            margin-left: auto;
+            color: #ecf0f1;
+            font-weight: bold;
         }
 
     </style>
@@ -115,6 +121,9 @@
     <div class="topbar">
         <a href="{% url 'dashboard' %}">Home</a>
         <a href="{% url 'logout' %}">Logout</a>
+        <span class="username">
+            👤 {{ request.session.username }}
+        </span>
     </div>
 
     <!-- MAIN -->

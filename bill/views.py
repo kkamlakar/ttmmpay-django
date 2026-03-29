@@ -433,9 +433,13 @@ def summary_page(request, bill_id=None):
     cursor.close()
     conn.close()
 
+    person_totals = {name: float(amount) for name, amount in totals}
+    person_totals_json = json.dumps(person_totals)
+
     return render(request, "summary.html", {
         "rows": rows,
         "totals": totals,
+        "person_totals": person_totals_json,   # ✅ JSON now
         "bill_id": bill_id,
         "max_id": max_id,
         "min_id": min_id
