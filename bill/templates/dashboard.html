@@ -31,18 +31,23 @@ const billsData = {{ bills_by_date|safe }};
 
 function loadBills(date){
 
+    console.log("CLICKED DATE:", date);
+    console.log("AVAILABLE KEYS:", Object.keys(billsData));
+
     const billList = document.getElementById("billList");
     billList.innerHTML = "";
 
     const bills = billsData[date];
 
     if(!bills || bills.length === 0){
+        console.log("NO MATCH");
         billList.innerHTML = "<p>No bills</p>";
         return;
     }
 
-    bills.forEach(bill => {
+    console.log("FOUND:", bills);
 
+    bills.forEach(bill => {
         const div = document.createElement("div");
 
         div.innerHTML = `<a href="#" onclick="openSummary(${bill.id})">
@@ -52,6 +57,7 @@ function loadBills(date){
         billList.appendChild(div);
     });
 }
+
 
 function openSummary(billId){
     document.getElementById("contentFrame").src = `/summary/${billId}/`;

@@ -555,9 +555,8 @@ def dashboard(request):
         if date != datetime(1900, 1, 1).date():
             year = date.year
             month = date.strftime("%b")
-            day = date.day
-
-            dates_by_year[year][month].add(day)
+            full_date = date.strftime("%Y-%m-%d")
+            dates_by_year[year][month].add(full_date)
 
 
     # Convert set → sorted list

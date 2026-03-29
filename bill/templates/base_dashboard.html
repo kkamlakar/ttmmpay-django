@@ -111,9 +111,9 @@
 
                 <div id="month-{{year}}-{{month}}" style="display:none;">
                     {% for day in days %}
-                        <div>
-                            {{ day|slice:"-2:" }}
-                        </div>                    
+                    <div onclick="event.stopPropagation(); loadBills('{{ day }}')">
+                        {{ day|slice:"-2:" }}
+                    </div>
                     {% endfor %}
                 </div>
 
