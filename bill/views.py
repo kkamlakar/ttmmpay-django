@@ -538,28 +538,42 @@ def dashboard(request):
     # Main bills table
     # -------------------------
     bills_by_date = defaultdict(list)
+
     for bill_id, name, date in rows:
         bills_by_date[date.strftime("%Y-%m-%d")].append({
             "id": bill_id,
             "name": name
         })
 
+
     # -------------------------
-    # Sidebar: group dates by year -> month -> day
+    # Sidebar: group dates (FIXED)
     # -------------------------
-    dates_by_year = defaultdict(lambda: defaultdict(list))
+    dates_by_year = defaultdict(lambda: defaultdict(set))
+
     for _, _, date in rows:
-        if date != datetime(1900, 1, 1).date():  # ignore dummy dates
+        if date != datetime(1900, 1, 1).date():
             year = date.year
-            month = date.strftime("%b")  # Jan, Feb, etc.
-            dates_by_year[year][month].append(date)
+            month = date.strftime("%b")
+            day = date.day
 
-    # Convert nested defaultdicts to dicts for template
-    dates_by_year = {y: dict(m) for y, m in dates_by_year.items()}
+            dates_by_year[year][month].add(day)
 
-    # -------------------------
-    # Render template
-    # -------------------------
+
+    # Convert set → sorted list
+    final_dates = {}
+    for year, months in dates_by_year.items():
+        final_dates[year] = {}
+        for month, days in months.items():
+            final_dates[year][month] = sorted(days, reverse=True)
+
+    dates_by_year = final_dates
+
+    #🟡 SECOND ISSUE: Toggle
+
+        # -------------------------
+        # Render template
+        # -------------------------
     context = {
         "bills_by_date": dict(bills_by_date),
         "dates_by_year": dates_by_year,

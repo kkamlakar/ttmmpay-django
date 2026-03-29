@@ -70,6 +70,15 @@
             border-radius: 8px;
         }
 
+        .sidebar div {
+            cursor: pointer;
+            padding: 8px 12px;
+        }
+
+        .sidebar div:hover {
+            background: #1abc9c;
+        }
+
     </style>
 
 </head>
@@ -89,15 +98,27 @@
         <div class="sidebar">
             <h3>Dates</h3>
             {% for year, months in dates_by_year.items %}
-                <div style="font-weight:bold; margin-top:5px;">{{ year }}</div>
+            <div onclick="toggle('year-{{year}}')">
+                {{ year }}
+            </div>
+
+            <div id="year-{{year}}" style="display:none;">
                 {% for month, days in months.items %}
-                    <div style="padding-left:10px; font-weight:bold;">{{ month }}</div>
-                    <div style="padding-left:20px;">
-                        {% for day in days %}
-                            <a href="#" onclick="loadBills('{{ day|date:'Y-m-d' }}')">{{ day|date:'d' }}</a><br>
-                        {% endfor %}
-                    </div>
+
+                <div onclick="toggle('month-{{year}}-{{month}}')">
+                    {{ month }}
+                </div>
+
+                <div id="month-{{year}}-{{month}}" style="display:none;">
+                    {% for day in days %}
+                        <div>
+                            {{ day|slice:"-2:" }}
+                        </div>                    
+                    {% endfor %}
+                </div>
+
                 {% endfor %}
+            </div>
             {% endfor %}
         </div>
 
@@ -112,25 +133,21 @@
         </style>
 
         <script>
-        function toggleVisibility(id){
-            const el = document.getElementById(id);
-            if(!el) return;
-            el.classList.toggle('hidden');
-
-            // rotate arrow
-            const arrow = el.previousElementSibling.querySelector('span');
-            if(arrow){
-                if(el.classList.contains('hidden')) arrow.innerHTML = '&#9658;'; // right arrow
-                else arrow.innerHTML = '&#9660;'; // down arrow
+        function toggle(id) {
+            var el = document.getElementById(id);
+            if (el.style.display === "none" || el.style.display === "") {
+                el.style.display = "block";
+            } else {
+                el.style.display = "none";
             }
         }
         </script>
+
         <!-- RIGHT: DYNAMIC CONTENT -->
         <div class="main">
             {% block content %}
             {% endblock %}
-        </div>
-
+        </div>    
     </div>
 
 </body>
