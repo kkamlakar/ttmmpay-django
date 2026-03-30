@@ -6,6 +6,7 @@
 <head>
 <title>Bill Summary</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
 <style>
 
@@ -86,6 +87,17 @@ a{
     color:#FFD966;
 }
 
+/* CHART SIZE CONTROL */
+.chart-cell{
+    width:300px;
+    height:300px;
+}
+
+.chart-cell canvas{
+    width:100% !important;
+    height:100% !important;
+}
+
 </style>
 
 </head>
@@ -121,15 +133,30 @@ a{
 <tr>
 <th>Person</th>
 <th>Total</th>
+<th>Percentage</th>
+<th>Chart</th>
 </tr>
-
-{% for t in totals %}
 <tr>
-<td>{{ t.0 }}</td>
-<td>{{ t.1 }}</td>
-</tr>
-{% endfor %}
 
+    <!-- LEFT SIDE DATA -->
+    <td colspan="3">
+        <table style="width:100%;">
+            {% for t in totals %}
+            <tr>
+                <td>{{ t.0 }}</td>
+                <td>{{ t.1 }}</td>
+                <td id="perc-{{ forloop.counter }}"></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </td>
+
+    <!-- RIGHT SIDE CHART -->
+    <td class="chart-cell">
+        <canvas id="billChart"></canvas>
+    </td>
+
+</tr>
 </table>
 
 <br><br>
@@ -166,10 +193,12 @@ a{
 document.addEventListener("DOMContentLoaded", function(){
 
     const dataFromBackend = {{ person_totals|safe }};
+    const percentages = {{ person_percentages|safe }};
 
     console.log("FINAL DATA:", dataFromBackend);
 
     const labels = Object.keys(dataFromBackend);
+
     const values = Object.values(dataFromBackend);
 
     new Chart(document.getElementById("billChart"), {
@@ -179,6 +208,49 @@ document.addEventListener("DOMContentLoaded", function(){
             datasets: [{
                 data: values
             }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                datalabels: {
+                    color: 'white',
+                    formatter: function(value, context) {
+
+                        const rawLabels = Object.keys({{ person_totals|safe }});
+                        const name = rawLabels[context.dataIndex];
+
+                        const perc = {{ person_percentages|safe }};
+                        const percent = perc[name];
+
+                        return name + "\n₹" + value + "\n" + percent + "%";
+                    },
+                    font: {
+                        weight: 'bold',
+                        size: 12
+                    },
+                    textAlign: 'center'
+                }                
+            }
+        },
+        plugins: [ChartDataLabels]   // 👈 IMPORTANT
+    });
+
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+    const perc = {{ person_percentages|safe }};
+    const names = Object.keys(perc);
+
+    names.forEach((name, index) => {
+        const cell = document.getElementById("perc-" + (index + 1));
+        if(cell){
+            cell.innerText = perc[name] + "%";
         }
     });
 

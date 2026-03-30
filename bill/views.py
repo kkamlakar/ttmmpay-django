@@ -434,12 +434,26 @@ def summary_page(request, bill_id=None):
     conn.close()
 
     person_totals = {name: float(amount) for name, amount in totals}
+    total_sum = sum(person_totals.values())
+
+    person_percentages = {}
+
+    for person, amount in person_totals.items():
+        if total_sum > 0:
+            percent = (amount / total_sum) * 100
+        else:
+            percent = 0
+        person_percentages[person] = round(percent, 2)
+
+    # ✅ OUTSIDE loop
+    person_percentages_json = json.dumps(person_percentages)
     person_totals_json = json.dumps(person_totals)
 
     return render(request, "summary.html", {
         "rows": rows,
         "totals": totals,
         "person_totals": person_totals_json,   # ✅ JSON now
+        "person_percentages": person_percentages_json,   # 👈 ADD THIS
         "bill_id": bill_id,
         "max_id": max_id,
         "min_id": min_id
