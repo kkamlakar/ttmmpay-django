@@ -4,6 +4,8 @@ import pyodbc
 import json
 from django.http import JsonResponse
 from collections import defaultdict
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 
 
@@ -598,3 +600,26 @@ def dashboard(request):
 
     return render(request, 'dashboard.html', context)
 
+
+
+# --------------------------
+# Delete a bill
+# --------------------------
+def delete_bill(request, bill_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Delete all related summary entries
+        cursor.execute("DELETE FROM billsummary WHERE BillId = ?", bill_id)
+
+        # Delete the bill master record
+        cursor.execute("DELETE FROM billmaster WHERE BillId = ?", bill_id)
+
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    # Redirect to main bills page after deletion
+    return redirect('ttmmpage')  # <-- use the URL name defined in urls.py

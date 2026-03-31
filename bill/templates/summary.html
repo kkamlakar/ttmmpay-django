@@ -110,18 +110,26 @@ a{
 
 <div class="nav">
 
-{% if bill_id > min_id %}
-<a href="/summary/{{ bill_id|add:"-1" }}/">⬅ Previous</a>
+{% if prev_bill %}
+<a href="{% url 'summary_bill' prev_bill %}">⬅ Previous</a>
 {% endif %}
 
 &nbsp;&nbsp;&nbsp;
 
 <strong>Bill ID: {{ bill_id }}</strong>
 
+&nbsp;&nbsp;
+
+<a href="{% url 'delete_bill' bill_id %}" 
+   onclick="return confirm('Are you sure you want to delete this bill permanently?');"
+   style="color:#ff6b6b; font-weight:bold;">
+   🗑 Delete
+</a>
+
 &nbsp;&nbsp;&nbsp;
 
-{% if bill_id < max_id %}
-<a href="/summary/{{ bill_id|add:"1" }}/">Next ➡</a>
+{% if next_bill %}
+<a href="{% url 'summary_bill' next_bill %}">Next ➡</a>
 {% endif %}
 
 </div>
@@ -195,12 +203,10 @@ document.addEventListener("DOMContentLoaded", function(){
     const dataFromBackend = {{ person_totals|safe }};
     const percentages = {{ person_percentages|safe }};
 
-    console.log("FINAL DATA:", dataFromBackend);
-
     const labels = Object.keys(dataFromBackend);
-
     const values = Object.values(dataFromBackend);
 
+    // ✅ Chart
     new Chart(document.getElementById("billChart"), {
         type: 'pie',
         data: {
@@ -220,11 +226,8 @@ document.addEventListener("DOMContentLoaded", function(){
                     color: 'white',
                     formatter: function(value, context) {
 
-                        const rawLabels = Object.keys({{ person_totals|safe }});
-                        const name = rawLabels[context.dataIndex];
-
-                        const perc = {{ person_percentages|safe }};
-                        const percent = perc[name];
+                        const name = labels[context.dataIndex];
+                        const percent = percentages[name];
 
                         return name + "\n₹" + value + "\n" + percent + "%";
                     },
@@ -236,21 +239,14 @@ document.addEventListener("DOMContentLoaded", function(){
                 }                
             }
         },
-        plugins: [ChartDataLabels]   // 👈 IMPORTANT
+        plugins: [ChartDataLabels]
     });
 
-});
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-
-    const perc = {{ person_percentages|safe }};
-    const names = Object.keys(perc);
-
-    names.forEach((name, index) => {
+    // ✅ Table percentages
+    labels.forEach((name, index) => {
         const cell = document.getElementById("perc-" + (index + 1));
         if(cell){
-            cell.innerText = perc[name] + "%";
+            cell.innerText = percentages[name] + "%";
         }
     });
 
