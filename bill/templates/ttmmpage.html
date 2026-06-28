@@ -60,14 +60,14 @@ h1,h2,h3{
 button{
     padding:8px 16px;
     border:none;
-    background:#9F8383;
+    background:#233D4D;
     color:white;
     border-radius:4px;
     cursor:pointer;
 }
 
 button:hover{
-    background:#574964;
+    background:#558467;
 }
 
 a{
@@ -280,7 +280,8 @@ table tr:hover{
 
 <br>
 
-<button onclick="saveBill()">Save Bill</button>
+<button id="saveBtn" onclick="saveBill()">Save Bill</button>
+<div id="saveError" style="color:#ff8080;margin-top:8px;"></div>
 
 </div>
 
@@ -358,7 +359,11 @@ const index = persons.indexOf(oldName)
 persons[index] = newName
 
 items.forEach(item=>{
-item.consumed = item.consumed.map(p => p === oldName ? newName : p)
+item.consumed.forEach(p => {
+    if (p.name === oldName) {
+        p.name = newName;
+    }
+    })
 })
 
 updatePersonList()
@@ -372,7 +377,7 @@ function deletePerson(name){
 persons = persons.filter(p => p !== name)
 
 items.forEach(item=>{
-item.consumed = item.consumed.filter(p=>p!==name)
+item.consumed = item.consumed.filter(p=>p.name!==name)
 })
 
 updatePersonList()
@@ -392,7 +397,16 @@ const price = parseFloat(document.getElementById("itemPrice").value)
 
 if(!name || isNaN(price)) return alert("Enter item name and price")
 
-items.push({name,price,consumed:[]})
+items.push({
+    name,
+    price,
+    equalSplit: true,   // default
+    consumed: persons.map(p => ({
+        name: p,
+        selected: false,
+        percentage: 0
+    }))
+})
 
 document.getElementById("itemName").value=""
 document.getElementById("itemPrice").value=""
@@ -479,83 +493,162 @@ div.innerHTML=""
 items.forEach((item,i)=>{
 
 const itemDiv = document.createElement("div")
-itemDiv.style.marginBottom="10px"
+itemDiv.style.marginBottom="15px"
 
 const title = document.createElement("strong")
 title.innerText = `${item.name} (₹${item.price.toFixed(2)})`
 
 itemDiv.appendChild(title)
 
-const checkboxes = document.createElement("div")
-checkboxes.className="checkbox-container"
+const selectAllBtn = document.createElement("button");
+selectAllBtn.innerText = "Select All";
+selectAllBtn.style.marginLeft = "10px";
 
+selectAllBtn.onclick = function () {
 
-// Select All checkbox
-const selectAllLabel = document.createElement("div")
-selectAllLabel.className = "select-all-box"
-const selectAll = document.createElement("input")
+//    const percent = 100 / item.consumed.length;
+    const percent = 100 / persons.length;
+    item.consumed.forEach(p => {
+        p.selected = true;
+        p.percentage = percent;
+    });
 
-selectAll.type="checkbox"
+    updateItemConsumption();
+};
 
-selectAll.checked = item.consumed.length===persons.length && persons.length>0
+const deselectAllBtn = document.createElement("button");
+deselectAllBtn.innerText = "Deselect All";
+deselectAllBtn.style.marginLeft = "5px";
 
-selectAll.onchange = function(){
+deselectAllBtn.onclick = function () {
 
-if(this.checked){
-item.consumed=[...persons]
+    item.consumed.forEach(p => {
+        p.selected = false;
+        p.percentage = 0;
+    });
+
+    updateItemConsumption();
+};
+
+itemDiv.appendChild(selectAllBtn);
+
+itemDiv.appendChild(deselectAllBtn);
+
+// ✅ Equal Split Toggle
+/*
+const toggle = document.createElement("div")
+toggle.innerHTML = `
+<label>
+<input type="checkbox" ${item.equalSplit ? "checked" : ""} onchange="toggleSplit(${i}, this.checked)">
+ Equal Split
+</label>
+`
+itemDiv.appendChild(toggle)
+*/
+const container = document.createElement("div")
+container.className="checkbox-container"
+
+if(item.equalSplit){
+
+    const selected = item.consumed.filter(p => p.selected);
+
+    if(selected.length){
+
+        const percent = 100 / selected.length;
+
+        selected.forEach(p=>{
+            p.percentage = percent;
+        });
+
+        item.consumed
+            .filter(p => !p.selected)
+            .forEach(p => p.percentage = 0);
+    }
 }
-else{
-item.consumed=[]
-}
 
-updateItemConsumption()
+// persons
+item.consumed.forEach((person,idx)=>{
 
-}
+const row=document.createElement("div")
+row.className = "checkbox-row"
 
-selectAllLabel.appendChild(selectAll)
-selectAllLabel.appendChild(document.createTextNode(" Select All"))
-
-checkboxes.appendChild(selectAllLabel)
-
-// persons checkboxes
-persons.forEach(p=>{
-
-const label=document.createElement("div")
-label.className = "checkbox-row"
+// checkbox
 const cb=document.createElement("input")
-
 cb.type="checkbox"
-cb.checked=item.consumed.includes(p)
+cb.checked=person.selected
 
-cb.onchange=function(){
+cb.onchange = () => {
+    person.selected = cb.checked;
+    updateItemConsumption();
+};
 
-if(this.checked)
-item.consumed.push(p)
+// name
+const nameText=document.createTextNode(person.name)
 
-else
-item.consumed=item.consumed.filter(x=>x!==p)
+// % input
+const percentInput = document.createElement("input")
+percentInput.type="number"
+//percentInput.value=person.percentage
+percentInput.value = person.percentage ? person.percentage.toFixed(2) : "";
+percentInput.style.width="60px"
+percentInput.style.marginLeft="10px"
 
+percentInput.disabled = !person.selected
+
+// if(item.equalSplit && person.selected){
+//    let selectedCount = item.consumed.filter(p => p.selected).length;
+//    person.percentage = selectedCount ? (100 / selectedCount) : 0;
+//    percentInput.value = person.percentage.toFixed(2);
+//}
+
+percentInput.onchange=function(){
+person.percentage = parseFloat(this.value) || 0
 renderSummary()
-
 }
 
-label.appendChild(cb)
-label.appendChild(document.createTextNode(p))
+// append
+row.appendChild(cb)
+row.appendChild(nameText)
+row.appendChild(percentInput)
+row.appendChild(document.createTextNode(" %"))
 
-checkboxes.appendChild(label)
+container.appendChild(row)
 
 })
 
+itemDiv.appendChild(container)
 
-itemDiv.appendChild(checkboxes)
+// show total %
+if(!item.equalSplit){
+
+    const totalDiv = document.createElement("div")
+    totalDiv.style.color = "red"
+
+    const total = getTotalPercentage(item)
+
+    totalDiv.innerText = "Total %: " + total
+
+    if(total === 100){
+        totalDiv.style.color = "lightgreen"
+    }
+
+    itemDiv.appendChild(totalDiv)
+    
+}
 div.appendChild(itemDiv)
 
 })
 
 renderSummary()
-
 }
 
+function refreshAll(){
+    updatePersonList();
+    updateItemList();
+    updateItemConsumption();
+    updateExtrasCheckboxes();
+    renderSummary();
+}
 
 // Render summary
 function renderSummary(){
@@ -582,14 +675,36 @@ items.forEach(item => {
     const row = summaryTable.insertRow();
 
     row.insertCell(0).innerText = item.name;
-    row.insertCell(1).innerText = item.consumed.join(", ") || "-";
+    row.insertCell(1).innerText =
+        item.consumed
+            .filter(p => p.selected)
+            .map(p => p.name)
+            .join(", ") || "-";
     row.insertCell(2).innerText = item.price.toFixed(2);
 
-    const share = item.consumed.length ? item.price / item.consumed.length : 0;
+    let selected = item.consumed.filter(p => p.selected)
 
-    row.insertCell(3).innerText = share.toFixed(2);
+    if(item.equalSplit){
 
-    item.consumed.forEach(p => totals[p] += share);
+        let share = selected.length ? item.price / selected.length : 0
+
+        row.insertCell(3).innerText = share.toFixed(2)
+
+        selected.forEach(p => {
+            totals[p.name] += share
+        })
+
+    }else{
+
+        row.insertCell(3).innerText =
+        selected.map(p =>
+        `${p.name}: ₹${(item.price * p.percentage / 100).toFixed(2)}`
+        ).join(" | ")
+
+        selected.forEach(p=>{
+            totals[p.name] += item.price * (p.percentage / 100)
+        })
+    }
 
 });
 
@@ -646,6 +761,36 @@ for (const p in totals){
 
 }
 
+// ===== VALIDATE PERCENTAGES =====
+let invalid = false;
+
+items.forEach(item => {
+
+    const total = getTotalPercentage(item);
+
+    if (!item.equalSplit && item.consumed.some(p => p.selected) && total !== 100) {
+        invalid = true;
+    }
+
+});
+
+const saveBtn = document.getElementById("saveBtn");
+const saveError = document.getElementById("saveError"); 
+
+if (invalid) {
+
+    saveBtn.disabled = true;
+    saveBtn.style.opacity = "0.5";
+    saveError.innerText = "⚠ One or more items do not total 100%.";
+
+} else {
+
+    saveBtn.disabled = false;
+    saveBtn.style.opacity = "1";
+    saveError.innerText = "";
+
+}
+
 }
 
 // SAVE BILL
@@ -660,8 +805,9 @@ function saveBill(){
     }
 
     // check if at least one item is consumed
-    let hasConsumption = items.some(item => item.consumed.length > 0);
-
+    let hasConsumption = items.some(item =>
+        item.consumed.some(p => p.selected)
+    );
     if(!hasConsumption){
         return alert("Assign at least one item to someone");
     }
@@ -688,7 +834,12 @@ function saveBill(){
             billDate: billDate,
             billTime: billTime,
             persons: persons,
-            items: items,
+            items: items.map(item => ({
+                name: item.name,
+                price: item.price,
+                equalSplit: item.equalSplit,
+                consumed: item.consumed
+            })),
             tax: parseFloat(document.getElementById('tax').value) || 0,
             tip: parseFloat(document.getElementById('tip').value) || 0,
             taxPeople: Array.from(document.querySelectorAll('.taxPerson:checked')).map(cb => cb.value),
@@ -853,6 +1004,27 @@ persons.forEach(p => {
 
 });
 }
+
+function toggleSplit(index, value){
+    items[index].equalSplit = value;
+        if(value){
+        const selected = items[index].consumed.filter(p => p.selected);
+
+        if(selected.length){
+            const percent = 100 / selected.length;
+            selected.forEach(p => p.percentage = percent);
+        }
+    }
+    updateItemConsumption();
+    renderSummary();
+}
+
+function getTotalPercentage(item){
+return item.consumed
+.filter(p => p.selected)
+.reduce((sum,p)=> sum + (p.percentage || 0), 0)
+}
+
 </script>
 
 </body>

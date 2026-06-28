@@ -321,30 +321,88 @@ def save_bill(request):
         person_totals = {p: 0 for p in persons}
         today = datetime.now().date()
 
-        # INSERT ITEMS
-        for item in items:
-            if not item["consumed"]:
-                continue
 
-            split_price = item["price"] / len(item["consumed"])
+        try:
+            # INSERT ITEMS
+            for item in items:
 
-            for person in item["consumed"]:
-                person_totals[person] += split_price
+                consumed = item.get("consumed", [])
+                if not consumed:
+                    continue
 
-                cursor.execute("""
-                INSERT INTO BillSummary
-                (Date, PersonName, ItemName, ItemPrice, PerPersonSplitPrice, FinalPrice, BillId, UserName)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    today,
-                    person,
-                    item["name"],
-                    item["price"],
-                    split_price,
-                    0,
-                    bill_id,
-                    username
-                ))
+                # ✅ FILTER only selected people
+                selected_people = [p for p in consumed if p.get("selected")]
+
+                if not selected_people:
+                    continue
+
+                # =========================
+                # ✅ EQUAL SPLIT
+                # =========================
+                if item.get("equalSplit", True):
+
+                    split_price = item["price"] / len(selected_people)
+
+                    for person in selected_people:
+                        person_name = person["name"]
+
+                        person_totals[person_name] += split_price
+
+                        cursor.execute("""
+                        INSERT INTO BillSummary
+                        (Date, PersonName, ItemName, ItemPrice, PerPersonSplitPrice, FinalPrice, BillId, UserName)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            today,
+                            person_name,
+                            item["name"],
+                            item["price"],
+                            split_price,
+                            0,
+                            bill_id,
+                            username
+                        ))
+
+                # =========================
+                # ✅ PERCENTAGE SPLIT
+                # =========================
+                else:
+
+                    total_percentage = sum(float(p.get("percentage", 0) or 0) for p in selected_people)
+
+                    if abs(total_percentage - 100) > 0.01:
+                        raise Exception(f"{item['name']} must total 100%")
+
+                    for person in selected_people:
+                        person_name = person["name"]
+                        percentage = float(person.get("percentage", 0) or 0)
+
+                        if percentage <= 0:
+                            continue
+
+                        split_price = item["price"] * (percentage / 100)
+
+                        person_totals[person_name] += split_price
+
+                        cursor.execute("""
+                        INSERT INTO BillSummary
+                        (Date, PersonName, ItemName, ItemPrice, Percentage, PerPersonSplitPrice, FinalPrice, BillId, UserName)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            today,
+                            person_name,
+                            item["name"],
+                            item["price"],
+                            percentage,
+                            split_price,
+                            0,
+                            bill_id,
+                            username
+                        ))
+
+        except Exception as e:
+            print("ITEM INSERT ERROR:", e)
+
 
         # TAX
         if tax > 0 and tax_people:
@@ -388,79 +446,89 @@ def summary_page(request, bill_id=None):
 
     username = request.session.get('username')
 
+    # Get all BillIds for this user (correct way for navigation)
     cursor.execute("""
-        SELECT MAX(BillId)
+        SELECT DISTINCT BillId
         FROM billsummary
         WHERE UserName = ?
+        ORDER BY BillId
     """, (username,))
-    max_id = cursor.fetchone()[0]
 
-    cursor.execute("""
-        SELECT MIN(BillId)
-        FROM billsummary
-        WHERE UserName = ?
-    """, (username,))
-    min_id = cursor.fetchone()[0]
+    bill_ids = [row[0] for row in cursor.fetchall()]
 
+    # If no bills exist
+    if not bill_ids:
+        cursor.close()
+        conn.close()
+        return render(request, "summary.html", {
+            "rows": [],
+            "totals": [],
+            "person_totals": "{}",
+            "person_percentages": "{}",
+            "bill_id": None,
+            "prev_id": None,
+            "next_id": None
+        })
+
+    # Default bill
     if bill_id is None:
-        bill_id = max_id
+        bill_id = bill_ids[-1]
 
-    # prevent going beyond limits
-    if bill_id > max_id:
-        bill_id = max_id
+    try:
+        bill_id = int(bill_id)
+    except:
+        bill_id = bill_ids[-1]
 
-    if bill_id < min_id:
-        bill_id = min_id
+    # If invalid bill_id → reset to latest
+    if bill_id not in bill_ids:
+        bill_id = bill_ids[-1]
+
+    # Find position
+    current_index = bill_ids.index(bill_id)
+
+    prev_id = bill_ids[current_index - 1] if current_index > 0 else None
+    next_id = bill_ids[current_index + 1] if current_index < len(bill_ids) - 1 else None
 
     # Query 1 → item details
-    username = request.session.get('username')
-
     cursor.execute("""
         SELECT *
         FROM billsummary
         WHERE BillId = ? AND UserName = ?
-        ORDER BY PersonName, ItemName           
+        ORDER BY PersonName, ItemName
     """, (bill_id, username))
     rows = cursor.fetchall()
 
-    # Query 2 → total per person
+    # Query 2 → totals per person
     cursor.execute("""
         SELECT PersonName, MAX(FinalPrice)
         FROM billsummary
         WHERE BillId = ? AND UserName = ?
-        GROUP BY PersonName    
+        GROUP BY PersonName
     """, (bill_id, username))
     totals = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
+    # Convert safely
     person_totals = {name: float(amount) for name, amount in totals}
+
     total_sum = sum(person_totals.values())
 
-    person_percentages = {}
-
-    for person, amount in person_totals.items():
-        if total_sum > 0:
-            percent = (amount / total_sum) * 100
-        else:
-            percent = 0
-        person_percentages[person] = round(percent, 2)
-
-    # ✅ OUTSIDE loop
-    person_percentages_json = json.dumps(person_percentages)
-    person_totals_json = json.dumps(person_totals)
+    person_percentages = {
+        person: round((amount / total_sum) * 100, 2) if total_sum > 0 else 0
+        for person, amount in person_totals.items()
+    }
 
     return render(request, "summary.html", {
         "rows": rows,
         "totals": totals,
-        "person_totals": person_totals_json,   # ✅ JSON now
-        "person_percentages": person_percentages_json,   # 👈 ADD THIS
+        "person_totals": json.dumps(person_totals),
+        "person_percentages": json.dumps(person_percentages),
         "bill_id": bill_id,
-        "max_id": max_id,
-        "min_id": min_id
+        "prev_id": prev_id,
+        "next_id": next_id
     })
-
 
 
 
