@@ -506,8 +506,10 @@ selectAllBtn.style.marginLeft = "10px";
 
 selectAllBtn.onclick = function () {
 
-//    const percent = 100 / item.consumed.length;
+    item.equalSplit = true;
+
     const percent = 100 / persons.length;
+
     item.consumed.forEach(p => {
         p.selected = true;
         p.percentage = percent;
@@ -521,6 +523,8 @@ deselectAllBtn.innerText = "Deselect All";
 deselectAllBtn.style.marginLeft = "5px";
 
 deselectAllBtn.onclick = function () {
+
+    item.equalSplit = true;
 
     item.consumed.forEach(p => {
         p.selected = false;
@@ -602,6 +606,7 @@ percentInput.disabled = !person.selected
 //}
 
 percentInput.onchange=function(){
+item.equalSplit = false;    
 person.percentage = parseFloat(this.value) || 0
 renderSummary()
 }
@@ -819,6 +824,7 @@ function saveBill(){
 
     console.log(restaurantName, billDate, billTime);  // 👈 check this
 
+    console.log("Items before save:", items);
 
     fetch("/save-bill/",{
 
